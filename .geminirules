@@ -1,0 +1,50 @@
+# .geminirules
+
+- **Ngôn ngữ**:
+    - **Bắt buộc**: Sử dụng tiếng Việt cho toàn bộ tài liệu, phản hồi và comment giải thích logic.
+    - **Bắt buộc**: Tên biến, hàm, class, bảng CSDL sử dụng tiếng Anh theo chuẩn lập trình.
+
+- **Môi trường**:
+    - **Bắt buộc**: Luôn sử dụng lệnh `sail` thay thế cho `php` khi thực thi công việc trên terminal. Ví dụ: `sail artisan migrate`, `sail artisan queue:work`.
+
+- **Cấu trúc Thư mục (Modular)**:
+    - **Bắt buộc**: Luôn làm việc theo cấu trúc Modular tại `/app/Modules/`.
+    - **Bắt buộc**: Namespace phải khớp chính xác với cấu trúc thư mục (ví dụ: `App\Modules\Orders\Controllers`).
+    - **Bắt buộc**: Mỗi module phải có thư mục `Enums/` chứa các trạng thái. Ví dụ: `App\Modules\Orders\Enums\OrderStatusEnum.php`. Enum dùng để validation.
+    - **Khuyến nghị**: Tên thư mục Module nên là số nhiều (ví dụ: `Customers`, `Products`, `Orders`).
+
+- **Module Chức năng Chuẩn**:
+    - **Bắt buộc**: Một module cơ bản (như Customers, Products) mặc định phải bao gồm các API: `stats`, `index`, `show`, `store`, `update`, `destroy`, `bulk destroy`, `bulk update status`, `export`, `import`.
+    - **Bắt buộc**: Bộ lọc (`index`) phải có tìm kiếm theo từ khóa (search), trạng thái (`status`), khoảng ngày tạo (`from_date`, `to_date`), và các trường sắp xếp (`sort_by`, `sort_order`).
+    - **Bắt buộc (Đặc thù Orders)**: Với module `Orders`, bộ lọc phải tuân thủ chuẩn Query Pipeline nâng cao: lọc theo khoảng giá (`min_amount`, `max_amount`), trạng thái, danh mục sản phẩm và thông tin khách hàng.
+
+- **Service Layer & Kiến trúc**:
+    - **Bắt buộc**: Mỗi module phải có thư mục `Service/` chứa file nghiệp vụ (ví dụ: `CustomerService.php`).
+    - **Bắt buộc**: Controller CHỈ nhận request, gọi Service và trả về Response. Không đặt logic xử lý database phức tạp tại Controller.
+    - **Bắt buộc**: Dùng `DB::transaction()` cho các luồng ghi dữ liệu quan trọng hoặc có nhiều bước (Ví dụ: Thêm Order -> Kiểm tra Tồn kho -> Lưu OrderItems -> Trừ Tồn kho).
+    - **Bắt buộc (Rollback)**: Quá trình thanh toán đơn hàng (hoặc tạo đơn) phải được rollback hoàn toàn nếu kho hàng không đủ số lượng cho bất kỳ sản phẩm nào.
+
+- **API Response (Trait RespondsWithJson)**:
+    - **Bắt buộc**: Dùng trait `App\Traits\RespondsWithJson` cho mọi Controller.
+    - **Bắt buộc**: Trả về dữ liệu thông qua Resource (`successResource`) và Collection (`successCollection`).
+    - **Bắt buộc**: Trong Resource, luôn format lại thời gian theo chuẩn Việt Nam. Ví dụ: `'created_at' => $this->created_at?->format('H:i:s d/m/Y')`.
+
+- **Export & Import (Excel)**:
+    - **Bắt buộc**: Export phải xuất đầy đủ các trường thông tin hiển thị trên màn hình danh sách, tiêu đề cột sử dụng Tiếng Việt.
+    - **Bắt buộc**: Import phải hỗ trợ ánh xạ tiêu đề cột (Headings) từ Tiếng Việt sang biến hệ thống, ép kiểu dữ liệu an toàn (float cho giá tiền, integer cho số lượng) trước khi lưu.
+
+- **Event, Listener & Observer**:
+    - **Bắt buộc**: Tạo `OrderObserver` để bắt sự kiện khi tạo/hủy đơn hàng (Tự động tính tổng tiền; Tự động hoàn lại kho khi Cancel).
+    - **Bắt buộc**: Sử dụng hệ thống Event/Listener. Khi có sự kiện thanh toán (`OrderPaid`), kích hoạt gửi Email (`SendOrderConfirmationEmail`) và Cộng điểm thưởng (`UpdateCustomerLoyaltyPoints`).
+    - **Bắt buộc**: Các Listeners gửi Email hoặc tạo File/PDF phải implement `ShouldQueue`.
+
+- **Hàng đợi (Queue), Job & Realtime**:
+    - **Bắt buộc**: Cấu hình Queue connection là `redis`.
+    - **Bắt buộc**: Tạo các Job chuyên biệt cho các tác vụ nặng (Ví dụ: `ProcessOrderInvoicePDF`).
+    - **Bắt buộc**: Xử lý WebSockets / Realtime bằng Laravel Reverb (hoặc Pusher). Phát sóng thông báo về Admin Dashboard khi có đơn hàng lớn (`BigOrderPlaced`).
+
+- **Lập lịch (Cron Job / Schedule)**:
+    - **Bắt buộc**: Cấu hình Task Scheduling trong `routes/console.php` hoặc `Kernel.php` để xử lý các đơn hàng Pending quá hạn.
+
+- **Báo cáo (Raw Query / Advanced Eloquent)**:
+    - **Bắt buộc**: Xây dựng API `/reports/revenue` sử dụng các câu query phức tạp, kết hợp (JOIN) từ 3-4 bảng trở lên để lấy thống kê. Không dùng vòng lặp `foreach` ở cấp độ PHP để đếm số liệu nhằm tối ưu hiệu năng.

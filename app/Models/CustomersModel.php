@@ -10,10 +10,10 @@ use Illuminate\Database\Eloquent\Model;
 
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class CustomerModel extends Model
+class CustomersModel extends Model
 {
     use HasFactory;
-
+    protected $table = 'customers';
     protected $fillable = [
         'name',
         'email',

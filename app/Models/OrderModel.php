@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
-use App\Enums\OrderStatusEnum;
+use App\Enums\OrdersStatusEnum;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\CustomerModel;
+use App\Models\CustomersModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,6 +16,8 @@ class OrderModel extends Model
 {
     use HasFactory;
 
+    protected $table = 'orders';
+
     protected $fillable = [
         'customer_id',
         'total_amount',
@@ -23,7 +25,7 @@ class OrderModel extends Model
     ];
 
     protected $casts = [
-        'status' => OrderStatusEnum::class,
+        'status' => OrdersStatusEnum::class,
     ];
 
 
@@ -40,7 +42,7 @@ class OrderModel extends Model
      */
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(CustomerModel::class, 'customer_id');
+        return $this->belongsTo(CustomersModel::class, 'customer_id');
     }
 
     /**
