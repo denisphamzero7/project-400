@@ -13,3 +13,6 @@ Route::prefix('products')->group(function () {
 Route::prefix('orders')->group(function () {
     require base_path('app/Modules/Orders/Router/Order.php');
 });
+Route::prefix('orderitems')->group(function () {
+    require base_path('app/Modules/OrderItems/Router/OrderItems.php');
+});

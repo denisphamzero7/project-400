@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Modules\Orders\Requests;
+namespace App\Modules\OrderItems\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use App\Enums\OrdersStatusEnum;
+use Illuminate\Foundation\Http\FormRequest;
+
 use Illuminate\Validation\Rule;
 
-class BulkUpdateStatusOrdersRequest extends FormRequest
+class BulkUpdateStatusOrderItemsRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -19,7 +20,7 @@ class BulkUpdateStatusOrdersRequest extends FormRequest
         return [
             'ids'   => 'required|array',
             // Sử dụng tên bảng 'orders' thay vì tên Model
-            'ids.*' => 'required|integer|exists:orders,id',
+            'ids.*' => 'required|integer|exists:order_items,id',
             'status'=> ['required', Rule::enum(OrdersStatusEnum::class)]
         ];
     }

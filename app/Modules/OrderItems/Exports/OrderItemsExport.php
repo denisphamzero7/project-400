@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Modules\Orders\Exports;
+namespace App\Modules\OrderItems\Exports;
 
-use App\Models\OrderModel;
+use App\Models\OrderItemModel;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
-class OrdersExport implements FromCollection, WithHeadings
+class OrderItemsExport implements FromCollection, WithHeadings
 {
     public function __construct(
         protected array $filters = []
@@ -18,16 +18,16 @@ class OrdersExport implements FromCollection, WithHeadings
     public function collection()
     {
         // Khởi tạo query và áp dụng bộ lọc từ scopeFilter
-        $orders = OrderModel::query()
+        $OrderItems = OrderItemModel::query()
             ->filter($this->filters)
             ->get();
 
-        // Map dữ liệu khớp với các cột thực tế của OrderModel
-        return $orders->map(fn ($order) => [
+        // Map dữ liệu khớp với các cột thực tế của OrderItemsModel
+        return $OrderItems->map(fn ($order) => [
             'id'             => $order->id,
             'customer_id'    => $order->customer_id,
             'total_amount'   => $order->total_amount,
-            'status'         => $order->status?->value ?? $order->status ?? 'N/A', // Bắt value từ OrdersStatusEnum
+            'status'         => $order->status?->value ?? $order->status ?? 'N/A', // Bắt value từ OrderItemsStatusEnum
             'created_at'     => $order->created_at?->format('d/m/Y H:i:s'),
             'updated_at'     => $order->updated_at?->format('d/m/Y H:i:s'),
         ]);

@@ -1,12 +1,11 @@
 <?php
 
-namespace App\Modules\Orders\Controllers;
+namespace App\Modules\OrderItems\Controllers;
 
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Class FilterRequest
- * @package App\Modules\Core\Requests
  *
  * @property-read string|null $search Từ khóa tìm kiếm.
  * @property-read int|null $limit Số lượng mục trên mỗi trang.

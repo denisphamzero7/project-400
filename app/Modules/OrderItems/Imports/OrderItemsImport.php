@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Modules\Orders\Imports;
+namespace App\Modules\OrderItems\Imports;
 
-use App\Models\OrderModel;
+use App\Models\OrderItemModel;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
-class OrdersImport implements ToModel, WithHeadingRow
+class OrderItemsImport implements ToModel, WithHeadingRow
 {
     public function __construct()
     {
@@ -22,7 +22,7 @@ class OrdersImport implements ToModel, WithHeadingRow
             return null;
         }
 
-        return new OrderModel([
+        return new OrderItemModel([
             // Bắt các cột có khả năng xuất hiện trong file Excel (Tiếng Việt hoặc Tiếng Anh)
             'customer_id'    => $row['ma_khach_hang'] ?? $row['customer_id'] ?? '',
             'total_amount'   => isset($row['tong_tien']) ? (float) $row['tong_tien'] : (isset($row['total_amount']) ? (float) $row['total_amount'] : 0),

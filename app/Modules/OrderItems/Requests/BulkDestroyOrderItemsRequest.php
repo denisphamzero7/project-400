@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Modules\Orders\Requests;
+namespace App\Modules\OrderItems\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class BulkDestroyOrdersRequest extends FormRequest
+class BulkDestroyOrderItemsRequest extends FormRequest
 {
     public function authorize(): bool
     {

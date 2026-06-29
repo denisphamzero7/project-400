@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Modules\Orders\Resources;
+namespace App\Modules\OrderItems\Resources;
 
 use Illuminate\Http\Resources\Json\ResourceCollection;
-class OrdersCollection extends ResourceCollection
+class OrderItemsCollection extends ResourceCollection
 {
-    public $collects = OrdersResource::class;
+    public $collects = OrderItemsResource::class;
 
     /**
      * Transform the resource collection into an array.

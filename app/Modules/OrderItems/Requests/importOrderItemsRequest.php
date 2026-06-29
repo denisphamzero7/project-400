@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Modules\Orders\Requests;
+namespace App\Modules\OrderItems\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class importOrdersRequest extends FormRequest
+class importOrderItemsRequest extends FormRequest
 {
     public function authorize():bool
     {
@@ -20,7 +20,7 @@ class importOrdersRequest extends FormRequest
     {
         return [
             'file'=>[
-                'description'=>'File Excel dữ liệu đơn hàng (.xlsx, .xls, .csv) cấu trúc cột phải khớp với hệ thống'
+                'description'=>'File Excel dữ liệu chi tiết đơn hàng (.xlsx, .xls, .csv) cấu trúc cột phải khớp với hệ thống'
             ]
         ];
     }

@@ -8,4 +8,5 @@ enum OrdersStatusEnum: string
     case PROCESSING = 'processing';
     case COMPLETED = 'completed';
     case CANCELLED = 'cancelled';
+    case EXPIRED = 'expired';
 }

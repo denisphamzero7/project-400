@@ -5,6 +5,12 @@ namespace App\Modules\Orders\Service;
 
 use App\Models\OrderModel;
 
+use App\Events\OrderPaid;
+use App\Enums\OrdersStatusEnum;
+use App\Events\BigOrderPlaced;
+use App\Models\OrderItemModel;
+use App\Models\ProductModel;
+use Exception;
 use App\Modules\Orders\Exports\OrdersExport;
 use App\Modules\Orders\Imports\OrdersImport;
 use Illuminate\Support\Facades\DB;
@@ -62,8 +68,50 @@ class OrdersService
     public function store(array $data): OrderModel
     {
         $order = DB::transaction(function () use ($data) {
-            return OrderModel::create($data);
+            // Tách riêng data cho order và order items
+            $orderData = [
+                'customer_id' => $data['customer_id'],
+                'status' => 'pending', // Mặc định khi mới tạo
+                'total_amount' => 0, // Sẽ được tính sau bởi Observer
+            ];
+            $order = OrderModel::create($orderData);
+
+            $items = $data['items'] ?? [];
+
+            foreach ($items as $item) {
+                $product = ProductModel::find($item['product_id']);
+
+                if (!$product) {
+                    throw new Exception("Sản phẩm với ID {$item['product_id']} không tồn tại.");
+                }
+
+                if ($product->stock_quantity < $item['quantity']) {
+                    throw new Exception("Sản phẩm '{$product->name}' không đủ số lượng tồn kho.");
+                }
+
+                // Giảm số lượng tồn kho
+                $product->decrement('stock_quantity', $item['quantity']);
+
+                // Tạo chi tiết đơn hàng
+                $order->items()->create([
+                    'product_id' => $product->id,
+                    'quantity' => $item['quantity'],
+                    'price' => $product->price, // Lưu lại giá tại thời điểm mua
+                ]);
+            }
+
+            // Calculate the total amount
+            $totalAmount = $order->items()->sum(DB::raw('price * quantity'));
+            $order->total_amount = $totalAmount;
+            $order->save();
+
+            return $order;
         });
+
+        // Bắn event nếu đơn hàng có giá trị lớn
+        if ($order->total_amount > 10000000) {
+            broadcast(new BigOrderPlaced($order));
+        }
 
         // Tùy chọn: Bắn realtime nếu cần (đảm bảo OrderActionEvent đã được tạo và cấu hình)
         // broadcast(new OrderActionEvent('order-created', $order->toArray()));
@@ -81,6 +129,13 @@ class OrdersService
                 $order->update($validated);
                 return $order;
             });
+
+            // Nếu trạng thái đơn hàng được cập nhật thành "completed" (đã thanh toán)
+            if (isset($validated['status']) && $validated['status'] === OrdersStatusEnum::COMPLETED->value) {
+                // Kích hoạt event OrderPaid
+                event(new OrderPaid($updatedOrder));
+            }
+
 
             // broadcast(new OrderActionEvent('order-updated', $updatedOrder->toArray())); // Kích hoạt sự kiện cập nhật
 
