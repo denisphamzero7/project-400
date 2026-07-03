@@ -25,6 +25,8 @@ class FilterRequest extends FormRequest
             'status' => 'nullable|string',
             'from_date' => 'nullable|date',
             'to_date' => 'nullable|date|after_or_equal:from_date',
+            'price_from' => 'nullable|numeric|min:0',
+            'price_to' => 'nullable|numeric|gte:price_from',
             'sort_by' => 'nullable|string|max:50',
             'sort_order' => 'nullable|in:asc,desc',
             'limit' => 'nullable|integer|min:1|max:100',
@@ -42,6 +44,9 @@ class FilterRequest extends FormRequest
             'limit.integer' => 'Số lượng phải là một số nguyên.',
             'limit.min' => 'Số lượng phải lớn hơn 0.',
             'limit.max' => 'Số lượng phải nhỏ hơn 100.',
+            'price_from.numeric' => 'Giá từ phải là một số.',
+            'price_to.numeric' => 'Giá đến phải là một số.',
+            'price_to.gte' => 'Giá đến phải lớn hơn hoặc bằng giá từ.',
         ];
     }
 
@@ -66,6 +71,14 @@ class FilterRequest extends FormRequest
             'to_date' => [
                 'description' => 'Lọc đến ngày tạo (Y-m-d).',
                 'example' => '2026-12-31',
+            ],
+            'price_from' => [
+                'description' => 'Lọc theo giá trị đơn hàng từ.',
+                'example' => '100000',
+            ],
+            'price_to' => [
+                'description' => 'Lọc theo giá trị đơn hàng đến.',
+                'example' => '500000',
             ],
             'sort_by' => [
                 'description' => 'Trường dùng để sắp xếp.',

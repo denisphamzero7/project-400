@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Events\OrderPaid;
+use App\Models\OrderItemModel;
 use App\Listeners\SendOrderConfirmationEmail;
 use App\Listeners\UpdateCustomerLoyaltyPoints;
+use App\Observers\OrderItemObserver;
 use App\Models\OrderModel;
 use App\Observers\OrderObserver;
 use Illuminate\Support\Facades\Event;
@@ -38,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         OrderModel::observe(OrderObserver::class);
+        OrderItemModel::observe(OrderItemObserver::class);
 
         // Manually register events and listeners because EventServiceProvider is missing
         foreach ($this->listen as $event => $listeners) {

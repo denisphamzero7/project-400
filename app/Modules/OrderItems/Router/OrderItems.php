@@ -1,5 +1,5 @@
 <?php
-namespace App\Modules\Orders\Router;
+namespace App\Modules\OrderItems\Router;
 use Illuminate\Support\Facades\Route;
 use App\Modules\OrderItems\Controllers\OrderItemsController;
 

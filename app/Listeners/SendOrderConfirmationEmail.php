@@ -4,6 +4,7 @@ namespace App\Listeners;
 
 use App\Events\OrderPaid;
 use App\Jobs\ProcessOrderInvoicePDF;
+use App\Notifications\OrderConfirmationNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -25,13 +26,11 @@ class SendOrderConfirmationEmail implements ShouldQueue
      */
     public function handle(OrderPaid $event): void
     {
-        // Giả lập gửi email
-        Log::info("Đang gửi email xác nhận đơn hàng cho khách hàng: {$event->order->customer->name} (ID: {$event->order->customer_id})");
-
-        // Logic gửi email thực tế sẽ nằm ở đây
-        // Mail::to($event->order->customer->email)->send(new OrderConfirmationMail($event->order));
+        $event->order->customer->notify(new OrderConfirmationNotification($event->order));
 
         // Đẩy job xử lý hóa đơn vào queue
         ProcessOrderInvoicePDF::dispatch($event->order);
+
+        Log::info("Đã gửi thông báo xác nhận đơn hàng thành công cho đơn hàng ID: {$event->order->id}");
     }
 }

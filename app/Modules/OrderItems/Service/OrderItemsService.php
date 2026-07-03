@@ -2,6 +2,7 @@
 
 namespace App\Modules\OrderItems\Service;
 
+use App\Models\ProductModel;
 use App\Models\OrderItemModel;
 use App\Modules\OrderItems\Exports\OrderItemsExport;
 use App\Modules\OrderItems\Imports\OrderItemsImport;
@@ -53,7 +54,15 @@ class OrderItemsService
     public function store(array $data): OrderItemModel
     {
         $orderItem = DB::transaction(function () use ($data) {
-            return OrderItemModel::create($data);
+            // Lấy thông tin sản phẩm để có giá chính xác
+            $product = ProductModel::findOrFail($data['product_id']);
+
+            // Bổ sung giá vào dữ liệu trước khi tạo
+            $dataToCreate = array_merge($data, [
+                'price' => $product->price,
+            ]);
+
+            return OrderItemModel::create($dataToCreate);
         });
 
         return $orderItem;
@@ -65,14 +74,22 @@ class OrderItemsService
     public function update(OrderItemModel $orderItem, array $validated): array
     {
         try {
-            $updatedOrder = DB::transaction(function () use ($orderItem, $validated) {
+            $updatedOrderItem = DB::transaction(function () use ($orderItem, $validated) {
+                // Nếu product_id được gửi lên, tức là người dùng muốn đổi sản phẩm
+                if (isset($validated['product_id'])) {
+                    // Lấy giá của sản phẩm mới
+                    $product = ProductModel::findOrFail($validated['product_id']);
+                    // Ghi đè/thêm giá mới vào mảng dữ liệu cập nhật
+                    $validated['price'] = $product->price;
+                }
+
                 $orderItem->update($validated);
                 return $orderItem;
             });
 
             return [
                 'ok' => true,
-                'order' => $updatedOrder
+                'order_item' => $updatedOrderItem
             ];
         } catch (\Exception $e) {
             return [
