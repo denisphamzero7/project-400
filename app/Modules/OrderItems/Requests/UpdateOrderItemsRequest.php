@@ -17,7 +17,6 @@ class UpdateOrderItemsRequest extends FormRequest
             'order_id'   => 'sometimes|required|integer|exists:orders,id',
             'product_id' => 'sometimes|required|integer|exists:products,id',
             'quantity'   => 'sometimes|required|integer|min:1',
-            'price'      => 'sometimes|required|numeric|min:0',
         ];
     }
 
@@ -35,10 +34,6 @@ class UpdateOrderItemsRequest extends FormRequest
             'quantity.required'   => 'Vui lòng nhập số lượng.',
             'quantity.integer'    => 'Số lượng phải là một số nguyên.',
             'quantity.min'        => 'Số lượng phải lớn hơn hoặc bằng 1.',
-
-            'price.required'      => 'Vui lòng nhập giá sản phẩm.',
-            'price.numeric'       => 'Giá sản phẩm phải là một số hợp lệ.',
-            'price.min'           => 'Giá sản phẩm không được nhỏ hơn 0.',
         ];
     }
 
@@ -56,10 +51,6 @@ class UpdateOrderItemsRequest extends FormRequest
             'quantity' => [
                 'description' => 'Số lượng sản phẩm mua',
                 'example'     => 3
-            ],
-            'price' => [
-                'description' => 'Đơn giá của sản phẩm (VNĐ)',
-                'example'     => 250000.00
             ],
         ];
     }

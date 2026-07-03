@@ -24,3 +24,15 @@ Broadcast::channel('admin', function ($user) {
     // Để đơn giản, chúng ta sẽ cho phép mọi user đã đăng nhập
     return $user != null;
 });
+
+// Kênh chung cho các sự kiện của module Customers
+Broadcast::channel('customers-channel', function ($user) {
+    // Cho phép mọi user đã đăng nhập nghe kênh này
+    // Trong thực tế, bạn có thể thêm logic kiểm tra quyền tại đây
+    return $user != null;
+});
+
+// Kênh chung cho các sự kiện của module Orders
+Broadcast::channel('orders-channel', function ($user) {
+    return $user != null;
+});

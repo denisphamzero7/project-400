@@ -33,6 +33,7 @@ class UpdateCustomerLoyaltyPoints implements ShouldQueue
 
             if ($pointsToAdd > 0) {
                 $customer->increment('loyalty_points', $pointsToAdd);
+                $customer->refresh();
                 Log::info("Đã cộng {$pointsToAdd} điểm thưởng cho khách hàng: {$customer->name}. Tổng điểm mới: {$customer->loyalty_points}");
             }
         }

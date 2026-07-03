@@ -42,6 +42,7 @@ class JobActionHandler implements ShouldQueue
 
                 // Kích hoạt Notification gửi cho toàn bộ danh sách User
                 Notification::send($usersInOrg, new JobNotification($action, $data));
+                Log::info("✅ Đã gửi thông báo '{$action}' thành công.");
                 break;
 
             case 'job-updated':
@@ -53,6 +54,7 @@ class JobActionHandler implements ShouldQueue
                     if ($creator) {
                         Log::info("📧 Chuẩn bị gửi email '{$action}' đến người tạo: " . $creator->email);
                         $creator->notify(new JobNotification($action, $data));
+                        Log::info("✅ Đã gửi thông báo '{$action}' cho người tạo thành công.");
                     } else {
                         Log::warning("⚠️ Không tìm thấy người tạo với ID: " . $data['created_by']);
                     }
@@ -67,6 +69,7 @@ class JobActionHandler implements ShouldQueue
                      if ($creator) {
                         Log::info("📧 Chuẩn bị gửi email '{$action}' đến người tạo: " . $creator->email);
                         $creator->notify(new JobNotification($action, $data));
+                        Log::info("✅ Đã gửi thông báo '{$action}' cho người tạo thành công.");
                     } else {
                         Log::warning("⚠️ Không tìm thấy người tạo với ID: " . $data['created_by'] . " cho công việc đã xóa.");
                     }
@@ -79,6 +82,7 @@ class JobActionHandler implements ShouldQueue
                 if (!$usersInOrg->isEmpty()) {
                     Log::info("📧 Chuẩn bị gửi email '{$action}' đến tất cả người dùng.");
                     Notification::send($usersInOrg, new JobNotification($action, $data));
+                    Log::info("✅ Đã gửi thông báo '{$action}' thành công.");
                 }
                 break;
 
@@ -88,6 +92,7 @@ class JobActionHandler implements ShouldQueue
                 if (!$usersInOrg->isEmpty()) {
                      Log::info("📧 Chuẩn bị gửi email '{$action}' đến tất cả người dùng.");
                     Notification::send($usersInOrg, new JobNotification($action, $data));
+                    Log::info("✅ Đã gửi thông báo '{$action}' thành công.");
                 }
                 break;
 
@@ -99,6 +104,7 @@ class JobActionHandler implements ShouldQueue
                     if ($user) {
                         Log::info("📧 Chuẩn bị gửi email '{$action}' đến người được giao: " . $user->email);
                         $user->notify(new JobNotification($action, $data));
+                        Log::info("✅ Đã gửi thông báo '{$action}' cho người được giao thành công.");
                     } else {
                         Log::warning("⚠️ Không tìm thấy user với ID: " . $data['user_id'] . " cho nhắc nhở.");
                     }
@@ -111,6 +117,7 @@ class JobActionHandler implements ShouldQueue
                 if (!$usersInOrg->isEmpty()) {
                     Log::info("📧 Chuẩn bị gửi email thông báo về hành động '{$action}' đến tất cả người dùng.");
                     Notification::send($usersInOrg, new JobNotification($action, $data));
+                    Log::info("✅ Đã gửi thông báo '{$action}' thành công.");
                 }
                 break;
         }

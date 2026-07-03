@@ -9,9 +9,7 @@ use App\Modules\Customers\Imports\CustomersImport;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-
-// Giả định bạn sẽ tạo một Event tương tự như JobActionEvent cho Customer
-// use App\Moduless\Customers\Events\CustomerActionEvent;
+use App\Modules\Customers\Events\CustomerActionEvent;
 
 class CustomersService
 {
@@ -64,7 +62,7 @@ class CustomersService
         });
 
         // Tùy chọn: Bắn realtime nếu cần
-        // broadcast(new CustomerActionEvent('customer-created', $customer->toArray()));
+        broadcast(new CustomerActionEvent('created', $customer->toArray()));
 
         return $customer;
     }
@@ -80,7 +78,7 @@ class CustomersService
                 return $customer;
             });
 
-            // broadcast(new CustomerActionEvent('customer-updated', $updatedCustomer->toArray()));
+            broadcast(new CustomerActionEvent('updated', $updatedCustomer->toArray()));
 
             return [
                 'ok' => true,
@@ -104,7 +102,7 @@ class CustomersService
         $id = $customer->id;
         $customer->delete($id);
 
-        // broadcast(new CustomerActionEvent('customer-deleted', $customer->toArray()));
+        broadcast(new CustomerActionEvent('deleted', ['id' => $id]));
     }
 
     /**
@@ -116,7 +114,7 @@ class CustomersService
             CustomersModel::whereIn('id', $ids)->delete();
         });
 
-        // broadcast(new CustomerActionEvent('customer-bulk-deleted', ['ids' => $ids]));
+        broadcast(new CustomerActionEvent('bulk-deleted', ['ids' => $ids]));
     }
 
     /**
@@ -126,7 +124,7 @@ class CustomersService
     {
         CustomersModel::whereIn('id', $ids)->update(['status' => $status]);
 
-        // broadcast(new CustomerActionEvent('customer-bulk-status-updated', ['ids' => $ids, 'status' => $status]));
+        broadcast(new CustomerActionEvent('bulk-status-updated', ['ids' => $ids, 'status' => $status]));
     }
 
     /**

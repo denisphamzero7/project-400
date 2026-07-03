@@ -32,10 +32,32 @@ class OrderModel extends Model
     public function scopeFilter(Builder $query, array $filters): void
     {
         $query->when($filters['search'] ?? null, function (Builder $query, string $search) {
-            $query->whereHas('customer', function (Builder $query) use ($search) {
-                $query->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('email', 'like', '%' . $search . '%');
+            $query->where(function (Builder $query) use ($search) {
+                $query->where('id', 'like', '%' . $search . '%')
+                    ->orWhereHas('customer', function (Builder $query) use ($search) {
+                        $query->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('email', 'like', '%' . $search . '%');
+                    });
             });
+        })
+        ->when($filters['status'] ?? null, function (Builder $query, string $status) {
+            $query->where('status', $status);
+        })
+        ->when($filters['from_date'] ?? null, function (Builder $query, string $fromDate) {
+            $query->whereDate('created_at', '>=', $fromDate);
+        })
+        ->when($filters['to_date'] ?? null, function (Builder $query, string $toDate) {
+            $query->whereDate('created_at', '<=', $toDate);
+        })
+        ->when($filters['price_from'] ?? null, function (Builder $query, string $priceFrom) {
+            $query->where('total_amount', '>=', $priceFrom);
+        })
+        ->when($filters['price_to'] ?? null, function (Builder $query, string $priceTo) {
+            $query->where('total_amount', '<=', $priceTo);
+        })
+        ->when($filters['sort_by'] ?? 'created_at', function (Builder $query, string $sortBy) use ($filters) {
+            $sortOrder = $filters['sort_order'] ?? 'desc';
+            $query->orderBy($sortBy, $sortOrder);
         });
     }
 

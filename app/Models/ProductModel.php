@@ -4,11 +4,13 @@ namespace App\Models;
 
 // Sửa lại use, bạn đang use chính class OrderModel hiện tại là không cần thiết nếu nó cùng namespace, 
 // nhưng để chắc chắn, tôi cứ giữ lại hoặc bạn có thể bỏ đi.
-use App\Models\OrderModel; 
+use App\Models\OrderModel;
+use App\Models\OrderItemModel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProductModel extends Model
 {
@@ -82,5 +84,13 @@ class ProductModel extends Model
         return $this->belongsToMany(OrderModel::class, 'order_items')
                     ->withPivot('quantity', 'price') // Cho phép lấy thêm cột từ bảng trung gian
                     ->withTimestamps();
+    }
+
+    /**
+     * Mối quan hệ 1-N: Một sản phẩm có nhiều order items.
+     */
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItemModel::class, 'product_id');
     }
 }

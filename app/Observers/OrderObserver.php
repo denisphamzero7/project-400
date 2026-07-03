@@ -27,7 +27,27 @@ class OrderObserver
      */
     public function created(OrderModel $order): void
     {
-        // Total amount will be calculated in the service after items are created.
+        // Tải lại mối quan hệ items nếu chưa có
+        $order->loadMissing('items');
+
+        // Tính tổng tiền từ các order items
+        $totalAmount = $order->items->reduce(function ($carry, $item) {
+            return $carry + ($item->price * $item->quantity);
+        }, 0);
+
+        // Cập nhật tổng tiền của đơn hàng mà không kích hoạt lại event
+        if ($order->total_amount !== $totalAmount) {
+            $order->total_amount = $totalAmount;
+            // Sử dụng withoutEvents để tránh vòng lặp vô tận khi save
+            OrderModel::withoutEvents(function () use ($order) {
+                $order->save();
+            });
+        }
+
+        // Sau khi tổng tiền được cập nhật, kiểm tra và bắn event BigOrderPlaced
+        if ($order->total_amount > 10000000) {
+            broadcast(new \App\Events\BigOrderPlaced($order));
+        }
     }
 
     /**

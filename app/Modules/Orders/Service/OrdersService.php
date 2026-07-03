@@ -15,10 +15,8 @@ use App\Modules\Orders\Exports\OrdersExport;
 use App\Modules\Orders\Imports\OrdersImport;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Modules\Orders\Events\OrderActionEvent;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-
-// Giả định bạn sẽ tạo một Event tương tự như JobActionEvent cho Order
-// use App\Moduless\Orders\Events\OrderActionEvent;
 
 class OrdersService
 {
@@ -58,8 +56,7 @@ class OrdersService
      */
     public function show(OrderModel $order): OrderModel
     {
-        return $order->load(['items']); // Tải mối quan hệ 'items' (chi tiết đơn hàng)
-        return $order;
+        return $order->load(['items', 'customer']); // Tải mối quan hệ 'items' và 'customer'
     }
 
     /**
@@ -71,50 +68,66 @@ class OrdersService
             // Tách riêng data cho order và order items
             $orderData = [
                 'customer_id' => $data['customer_id'],
-                'status' => 'pending', // Mặc định khi mới tạo
-                'total_amount' => 0, // Sẽ được tính sau bởi Observer
+                'status' => $data['status'] ?? 'pending', // Mặc định khi mới tạo
+                'total_amount' => 0, // Sẽ được tính và cập nhật lại ngay trong transaction
             ];
             $order = OrderModel::create($orderData);
 
             $items = $data['items'] ?? [];
 
-            foreach ($items as $item) {
-                $product = ProductModel::find($item['product_id']);
+            if (!empty($items)) {
+                $productIds = array_column($items, 'product_id');
+                $products = ProductModel::find($productIds)->keyBy('id');
 
-                if (!$product) {
-                    throw new Exception("Sản phẩm với ID {$item['product_id']} không tồn tại.");
+                if (count($products) !== count($productIds)) {
+                    throw new Exception("Một hoặc nhiều sản phẩm không tồn tại.");
                 }
 
-                if ($product->stock_quantity < $item['quantity']) {
-                    throw new Exception("Sản phẩm '{$product->name}' không đủ số lượng tồn kho.");
+                $orderItemsData = [];
+                $stockUpdates = [];
+
+                foreach ($items as $item) {
+                    $product = $products->get($item['product_id']);
+
+                    if (!$product) {
+                        throw new Exception("Sản phẩm với ID {$item['product_id']} không tồn tại.");
+                    }
+
+                    if ($product->stock_quantity < $item['quantity']) {
+                        throw new Exception("Sản phẩm '{$product->name}' không đủ số lượng tồn kho.");
+                    }
+
+                    $itemPrice = $product->price;
+
+                    $orderItemsData[] = [
+                        'order_id' => $order->id,
+                        'product_id' => $product->id,
+                        'quantity' => $item['quantity'],
+                        'price' => $itemPrice,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+
+                    // Chuẩn bị câu lệnh update stock
+                    $stockUpdates[] = "WHEN {$product->id} THEN stock_quantity - {$item['quantity']}";
                 }
 
-                // Giảm số lượng tồn kho
-                $product->decrement('stock_quantity', $item['quantity']);
+                // Bulk insert order items
+                OrderItemModel::insert($orderItemsData);
 
-                // Tạo chi tiết đơn hàng
-                $order->items()->create([
-                    'product_id' => $product->id,
-                    'quantity' => $item['quantity'],
-                    'price' => $product->price, // Lưu lại giá tại thời điểm mua
-                ]);
+                // Bulk update stock quantity
+                if (!empty($stockUpdates)) {
+                    $ids = implode(',', $productIds);
+                    $cases = implode(' ', $stockUpdates);
+                    DB::update("UPDATE products SET stock_quantity = CASE id {$cases} END WHERE id IN ({$ids})");
+                }
             }
-
-            // Calculate the total amount
-            $totalAmount = $order->items()->sum(DB::raw('price * quantity'));
-            $order->total_amount = $totalAmount;
-            $order->save();
 
             return $order;
         });
 
-        // Bắn event nếu đơn hàng có giá trị lớn
-        if ($order->total_amount > 10000000) {
-            broadcast(new BigOrderPlaced($order));
-        }
-
-        // Tùy chọn: Bắn realtime nếu cần (đảm bảo OrderActionEvent đã được tạo và cấu hình)
-        // broadcast(new OrderActionEvent('order-created', $order->toArray()));
+        // Tùy chọn: Bắn realtime nếu cần
+        broadcast(new OrderActionEvent('created', $order->toArray()));
 
         return $order;
     }
@@ -137,7 +150,7 @@ class OrdersService
             }
 
 
-            // broadcast(new OrderActionEvent('order-updated', $updatedOrder->toArray())); // Kích hoạt sự kiện cập nhật
+            broadcast(new OrderActionEvent('updated', $updatedOrder->toArray())); // Kích hoạt sự kiện cập nhật
 
             return [
                 'ok' => true,
@@ -159,9 +172,9 @@ class OrdersService
     public function destroy(OrderModel $order): void
     {
         $id = $order->id;
-        $order->delete($id);
+        $order->delete();
 
-        // broadcast(new OrderActionEvent('order-deleted', $order->toArray())); // Kích hoạt sự kiện xóa
+        broadcast(new OrderActionEvent('deleted', ['id' => $id])); // Kích hoạt sự kiện xóa
     }
 
     /**
@@ -172,8 +185,7 @@ class OrdersService
         DB::transaction(function () use ($ids) {
             OrderModel::whereIn('id', $ids)->delete();
         });
-        // broadcast(new OrderActionEvent('order-bulk-deleted', ['ids' => $ids])); // Kích hoạt sự kiện xóa hàng loạt
-        // broadcast(new OrderActionEvent('order-bulk-deleted', ['ids' => $ids]));
+        broadcast(new OrderActionEvent('bulk-deleted', ['ids' => $ids]));
     }
 
     /**
@@ -183,7 +195,7 @@ class OrdersService
     {
         OrderModel::whereIn('id', $ids)->update(['status' => $status]); // Cập nhật trạng thái
 
-        // broadcast(new OrderActionEvent('order-bulk-status-updated', ['ids' => $ids, 'status' => $status]));
+        broadcast(new OrderActionEvent('bulk-status-updated', ['ids' => $ids, 'status' => $status]));
     }
 
     /**

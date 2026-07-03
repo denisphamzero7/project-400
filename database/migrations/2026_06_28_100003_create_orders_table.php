@@ -15,8 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
             $table->decimal('total_amount', 15, 2)->unsigned()->default(0.00);
-            $table->enum('status', ['pending', 'paid', 'cancelled', 'expired'])
+
+            // Đã cập nhật lại mảng trạng thái cho khớp với OrdersStatusEnum
+            $table->enum('status', ['pending', 'processing', 'completed', 'cancelled', 'expired'])
                   ->default('pending');
+
             $table->timestamps();
         });
     }
