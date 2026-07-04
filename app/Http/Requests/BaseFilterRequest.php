@@ -1,17 +1,19 @@
 <?php
 
-namespace App\Modules\Customers\Controllers;
+namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Class FilterRequest
- * @package App\Modules\Core\Requests
+ * Class BaseFilterRequest
+ * @package App\Http\Requests
  *
  * @property-read string|null $search Từ khóa tìm kiếm.
  * @property-read int|null $limit Số lượng mục trên mỗi trang.
+ * @property-read string|null $sort_by Trường sắp xếp.
+ * @property-read string|null $sort_order Thứ tự sắp xếp.
  */
-class FilterRequest extends FormRequest
+class BaseFilterRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -53,7 +55,7 @@ class FilterRequest extends FormRequest
         return [
             'search' => [
                 'description' => 'Từ khóa tìm kiếm theo tên hoặc trường chính.',
-                'example' => 'van-ban',
+                'example' => 'abc-xyz',
             ],
             'status' => [
                 'description' => 'Lọc theo trạng thái.',
@@ -82,9 +84,6 @@ class FilterRequest extends FormRequest
         ];
     }
 
-    /**
-     * Tránh cảnh báo của Scribe với request dùng cho query.
-     */
     public function bodyParameters(): array
     {
         return [];

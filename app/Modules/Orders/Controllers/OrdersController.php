@@ -4,7 +4,7 @@ namespace App\Modules\Orders\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\OrderModel;
-use App\Modules\Orders\Controllers\FilterRequest;
+use App\Modules\Orders\Requests\FilterRequest;
 use App\Modules\Orders\Service\OrdersService;
 
 use App\Modules\Orders\Requests\StoreOrdersRequest;
@@ -129,5 +129,13 @@ class OrdersController extends Controller
         $this->OrdersService->import($request->file('file'));
 
         return $this->success(null, 'Import dữ liệu đơn hàng thành công.');
+    }
+
+    /**
+     * Tải về file PDF của một đơn hàng.
+     */
+    public function downloadPdf(OrderModel $order)
+    {
+        return $this->OrdersService->downloadPdf($order);
     }
 }

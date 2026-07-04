@@ -22,7 +22,7 @@ class ProductsService
     }
 
     /**
-     * Thống kê số lượng khách hàng.
+     * Thống kê số lượng sản phẩm.
      */
     public function stats(array $filters): array
     {
@@ -47,66 +47,64 @@ class ProductsService
     }
 
     /**
-     * Lấy chi tiết khách hàng.
+     * Lấy chi tiết sản phẩm.
      */
-    public function show(ProductModel $customer): ProductModel
+    public function show(ProductModel $product): ProductModel
     {
-        // Nếu muốn load kèm danh sách đơn hàng thì mở comment dòng dưới
-        return $customer->load(['orders']);
-        // return $customer;
+        // Load kèm danh sách các order items liên quan đến sản phẩm này
+        return $product->load(['orderItems']);
     }
 
     /**
-     * Thêm mới khách hàng.
+     * Thêm mới sản phẩm.
      */
     public function store(array $data): ProductModel
     {
-        $customer = DB::transaction(function () use ($data) {
+        $product = DB::transaction(function () use ($data) {
             return ProductModel::create($data);
         });
 
         // Tùy chọn: Bắn realtime nếu cần
-        // broadcast(new CustomerActionEvent('customer-created', $customer->toArray()));
+        // broadcast(new ProductActionEvent('product-created', $product->toArray()));
 
-        return $customer;
+        return $product;
     }
 
     /**
-     * Cập nhật khách hàng.
+     * Cập nhật sản phẩm.
      */
-    public function update(ProductModel $customer, array $validated): array
+    public function update(ProductModel $product, array $validated): array
     {
         try {
-            $updatedCustomer = DB::transaction(function () use ($customer, $validated) {
-                $customer->update($validated);
-                return $customer;
+            $updatedProduct = DB::transaction(function () use ($product, $validated) {
+                $product->update($validated);
+                return $product;
             });
 
-            // broadcast(new CustomerActionEvent('customer-updated', $updatedCustomer->toArray()));
+            // broadcast(new ProductActionEvent('product-updated', $updatedProduct->toArray()));
 
             return [
                 'ok' => true,
-                'customer' => $updatedCustomer
+                'product' => $updatedProduct
             ];
         } catch (\Exception $e) {
             return [
                 'ok' => false,
                 'message' => 'Lỗi cập nhật: ' . $e->getMessage(),
                 'code' => 500,
-                'error_code' => 'UPDATE_ERROR'
+                'error_code' => 'PRODUCT_UPDATE_ERROR'
             ];
         }
     }
 
     /**
-     * Xóa khách hàng.
+     * Xóa sản phẩm.
      */
-    public function destroy(ProductModel $customer): void
+    public function destroy(ProductModel $product): void
     {
-        $id = $customer->id;
-        $customer->delete($id);
+        $product->delete();
 
-        // broadcast(new CustomerActionEvent('customer-deleted', $customer->toArray()));
+        // broadcast(new ProductActionEvent('product-deleted', $product->toArray()));
     }
 
     /**
@@ -118,7 +116,7 @@ class ProductsService
             ProductModel::whereIn('id', $ids)->delete();
         });
 
-        // broadcast(new CustomerActionEvent('customer-bulk-deleted', ['ids' => $ids]));
+        // broadcast(new ProductActionEvent('product-bulk-deleted', ['ids' => $ids]));
     }
 
     /**
@@ -128,11 +126,11 @@ class ProductsService
     {
         ProductModel::whereIn('id', $ids)->update(['status' => $status]);
 
-        // broadcast(new CustomerActionEvent('customer-bulk-status-updated', ['ids' => $ids, 'status' => $status]));
+        // broadcast(new ProductActionEvent('product-bulk-status-updated', ['ids' => $ids, 'status' => $status]));
     }
 
     /**
-     * Xuất danh sách khách hàng (Excel).
+     * Xuất danh sách sản phẩm (Excel).
      */
     public function export(array $filters): BinaryFileResponse
     {
@@ -143,7 +141,7 @@ class ProductsService
     }
 
     /**
-     * Nhập danh sách khách hàng từ file.
+     * Nhập danh sách sản phẩm từ file.
      */
     public function import($file): void
     {

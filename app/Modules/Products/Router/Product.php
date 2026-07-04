@@ -20,9 +20,10 @@ Route::post('/', [ProductsController::class, 'store']);
 
 // =================================================================
 // 3. CÁC ROUTE ĐỘNG (Dynamic Routes) - Bắt buộc đặt dưới cùng
-// CHÚ Ý: Đã đổi {id} thành {customer} để fix lỗi trả về NULL
+// CHÚ Ý: Đã đổi {id} thành {product} để fix lỗi trả về NULL
 // =================================================================
-Route::get('{customer}', [ProductsController::class, 'show']);
-Route::put('{customer}', [ProductsController::class, 'update']);
-Route::patch('{customer}', [ProductsController::class, 'update']);
-Route::delete('{customer}', [ProductsController::class, 'destroy']);
+Route::get('{product}', [ProductsController::class, 'show']);
+Route::put('{product}', [ProductsController::class, 'update']);
+Route::patch('{product}', [ProductsController::class, 'update']);
+Route::delete('{product}', [ProductsController::class, 'destroy']);
+        

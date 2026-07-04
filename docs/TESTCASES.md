@@ -143,7 +143,7 @@ Mục tiêu của các test case này là kiểm tra các API của `order-items
 ### 4.1. Kịch bản: Thêm một sản phẩm vào đơn hàng đã có
 
 *   **Mục tiêu:** Thêm một "Bàn phím cơ" (giá 2,100,000) vào đơn hàng. Tổng tiền mới phải được cộng thêm.
-*   **Endpoint:** `POST {{base_url}}/order-items`
+*   **Endpoint:** `POST {{base_url}}/orderitems`
 *   **Body:**
     ```json
     {
@@ -159,7 +159,7 @@ Mục tiêu của các test case này là kiểm tra các API của `order-items
 ### 4.2. Kịch bản: Cập nhật số lượng của một sản phẩm
 
 *   **Mục tiêu:** Thay đổi số lượng "Chuột" từ 2 thành 3. Tổng tiền phải được tính lại.
-*   **Endpoint:** `PUT {{base_url}}/order-items/{item_id}` (sử dụng ID của item "Chuột")
+*   **Endpoint:** `PUT {{base_url}}/orderitems/{orderItem}` (sử dụng ID của item "Chuột")
 *   **Body:**
     ```json
     {
@@ -173,7 +173,7 @@ Mục tiêu của các test case này là kiểm tra các API của `order-items
 ### 4.3. Kịch bản: Xóa một sản phẩm khỏi đơn hàng
 
 *   **Mục tiêu:** Xóa "Bàn phím cơ" vừa thêm ra khỏi đơn hàng. Tổng tiền phải được trừ đi.
-*   **Endpoint:** `DELETE {{base_url}}/order-items/{item_id}` (sử dụng ID của item "Bàn phím cơ")
+*   **Endpoint:** `DELETE {{base_url}}/orderitems/{orderItem}` (sử dụng ID của item "Bàn phím cơ")
 *   **Kiểm tra:**
     1.  API trả về `status 204 No Content`.
     2.  Kiểm tra DB: `total_amount` của đơn hàng `id=1` đã được cập nhật trở lại `37,250,000` (35tr laptop + 3 * 750k chuột).
@@ -181,7 +181,7 @@ Mục tiêu của các test case này là kiểm tra các API của `order-items
 ### 4.4. Kịch bản: Thay đổi sản phẩm trong một chi tiết đơn hàng
 
 *   **Mục tiêu:** Đổi 3 "Chuột" (750k/cái) thành 3 "Sản phẩm sắp hết hàng" (100k/cái). Giá và tổng tiền phải tự cập nhật.
-*   **Endpoint:** `PUT {{base_url}}/order-items/{item_id}` (sử dụng ID của item "Chuột")
+*   **Endpoint:** `PUT {{base_url}}/orderitems/{orderItem}` (sử dụng ID của item "Chuột")
 *   **Body:** `{"product_id": 4, "quantity": 3}`
 *   **Kiểm tra:** `price` của order item này đổi thành `100000.00` và `total_amount` của đơn hàng được tính lại.
 

@@ -9,20 +9,24 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail; // Mail không được sử dụng trong Job này
 use Illuminate\Support\Facades\Storage;
+use PDF;
 
 class ProcessOrderInvoicePDF implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public OrderModel $order;
+    protected int $orderId;
 
     /**
      * Create a new job instance.
+     *
+     * @param int $orderId ID của đơn hàng cần xử lý
      */
-    public function __construct(OrderModel $order)
+    public function __construct(int $orderId)
     {
-        $this->order = $order;
+        $this->orderId = $orderId;
     }
 
     /**
@@ -30,17 +34,25 @@ class ProcessOrderInvoicePDF implements ShouldQueue
      */
     public function handle(): void
     {
-        Log::info("Bắt đầu xử lý xuất hóa đơn PDF cho đơn hàng #{$this->order->id}");
+        Log::info("Bắt đầu xử lý xuất hóa đơn PDF cho đơn hàng #{$this->orderId}");
 
-        // Giả lập quá trình tạo PDF (có thể mất thời gian)
-        sleep(5); // Giả lập job nặng
+        $order = OrderModel::find($this->orderId);
 
-        $filename = "invoices/invoice_{$this->order->id}.txt";
-        $content = "Đây là nội dung hóa đơn cho đơn hàng #{$this->order->id}.";
+        if (!$order) {
+            Log::warning("Không tìm thấy đơn hàng #{$this->orderId} để xuất hóa đơn PDF.");
+            return;
+        }
+
+        // Tải các mối quan hệ cần thiết và làm mới model để có dữ liệu mới nhất
+        $order->load('customer', 'items.product')->refresh();
+
+        // Tạo PDF từ Blade view (tương tự OrdersService)
+        $pdf = PDF::loadView('pdfs.order_pdf', ['order' => $order]);
+        $filename = "invoices/hoa-don-{$order->id}.pdf";
 
         // Lưu file vào storage/app/public/invoices/
-        Storage::disk('public')->put($filename, $content);
+        Storage::disk('public')->put($filename, $pdf->output());
 
-        Log::info("Đã xuất và lưu hóa đơn PDF cho đơn hàng #{$this->order->id} tại: {$filename}");
+        Log::info("Đã xuất và lưu hóa đơn PDF cho đơn hàng #{$order->id} tại: {$filename}");
     }
 }

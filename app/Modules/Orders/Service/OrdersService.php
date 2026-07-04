@@ -15,7 +15,9 @@ use App\Modules\Orders\Exports\OrdersExport;
 use App\Modules\Orders\Imports\OrdersImport;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Modules\Orders\Events\OrderActionEvent;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class OrdersService
@@ -35,9 +37,11 @@ class OrdersService
         // Ví dụ: 'pending' => (clone $base)->where('status', OrderStatusEnum::PENDING)->count(),
         // Đảm bảo OrderStatusEnum đã được định nghĩa với các giá trị tương ứng.
         return [
-            'total' => (clone $base)->count(),
-            // 'pending' => (clone $base)->where('status', 'pending')->count(),
-            // 'completed' => (clone $base)->where('status', 'completed')->count(),
+            'total'     => (clone $base)->count(),
+            'pending'   => (clone $base)->where('status', OrdersStatusEnum::PENDING)->count(),
+            'completed' => (clone $base)->where('status', OrdersStatusEnum::COMPLETED)->count(),
+            'cancelled' => (clone $base)->where('status', OrdersStatusEnum::CANCELLED)->count(),
+            'expired'   => (clone $base)->where('status', OrdersStatusEnum::EXPIRED)->count(),
         ];
     }
 
@@ -45,18 +49,42 @@ class OrdersService
      * Lấy danh sách đơn hàng có phân trang.
      */
     public function index(array $filters, int $limit)
-    {
-        // Không dùng organization_id vì OrderModel không có trường này
-        return OrderModel::filter($filters)
-            ->paginate($limit);
+{
+    try {
+        // Thực hiện query và gán vào biến
+        $orders = OrderModel::filter($filters)->paginate($limit);
+
+        // Log danh sách kết quả để xem có gì bên trong
+        // Sử dụng toArray() để dễ đọc dữ liệu phân trang trong file log
+        Log::info('Danh sách Orders [Index]:', [
+            'filters' => $filters,
+            'limit' => $limit,
+            'data' => $orders->toArray()
+        ]);
+
+        return $orders;
+
+    } catch (Exception $e) {
+        // Log lại chi tiết lỗi nếu query thất bại
+        Log::error('Lỗi khi lấy danh sách Orders: ' . $e->getMessage(), [
+            'filters' => $filters,
+            'limit' => $limit,
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]);
+
+        // Bạn có thể return một response báo lỗi hoặc throw lỗi tuỳ thuộc vào logic ứng dụng
+        // Ví dụ: return response()->json(['message' => 'Có lỗi xảy ra!'], 500);
+        throw $e;
     }
+}
 
     /**
      * Lấy chi tiết đơn hàng.
      */
     public function show(OrderModel $order): OrderModel
     {
-        return $order->load(['items', 'customer']); // Tải mối quan hệ 'items' và 'customer'
+        return $order->load(['customer', 'items.product']); // Tải mối quan hệ 'items' và 'customer'
     }
 
     /**
@@ -85,6 +113,7 @@ class OrdersService
 
                 $orderItemsData = [];
                 $stockUpdates = [];
+                $totalAmount = 0; // 1. Khởi tạo biến tính tổng tiền
 
                 foreach ($items as $item) {
                     $product = $products->get($item['product_id']);
@@ -98,6 +127,9 @@ class OrdersService
                     }
 
                     $itemPrice = $product->price;
+
+                    // 2. Cộng dồn vào tổng tiền
+                    $totalAmount += $itemPrice * $item['quantity'];
 
                     $orderItemsData[] = [
                         'order_id' => $order->id,
@@ -120,8 +152,15 @@ class OrdersService
                     $ids = implode(',', $productIds);
                     $cases = implode(' ', $stockUpdates);
                     DB::update("UPDATE products SET stock_quantity = CASE id {$cases} END WHERE id IN ({$ids})");
+
+                    // 3. Cập nhật tổng tiền cho đơn hàng
+                    $order->total_amount = $totalAmount;
+                    $order->save();
                 }
             }
+
+            // 4. Làm mới model để lấy dữ liệu mới nhất từ DB (bao gồm total_amount)
+            $order->refresh();
 
             return $order;
         });
@@ -142,12 +181,6 @@ class OrdersService
                 $order->update($validated);
                 return $order;
             });
-
-            // Nếu trạng thái đơn hàng được cập nhật thành "completed" (đã thanh toán)
-            if (isset($validated['status']) && $validated['status'] === OrdersStatusEnum::COMPLETED->value) {
-                // Kích hoạt event OrderPaid
-                event(new OrderPaid($updatedOrder));
-            }
 
 
             broadcast(new OrderActionEvent('updated', $updatedOrder->toArray())); // Kích hoạt sự kiện cập nhật
@@ -215,5 +248,20 @@ class OrdersService
     public function import($file): void
     {
         Excel::import(new OrdersImport(), $file); // Truyền file Import đã sửa
+    }
+
+    /**
+     * Tạo và trả về file PDF cho một đơn hàng.
+     */
+    public function downloadPdf(OrderModel $order)
+    {
+        // Eager load các mối quan hệ cần thiết để tránh query N+1
+        $order->load('customer', 'items.product');
+
+        // Tạo PDF từ Blade view
+        $pdf = Pdf::loadView('pdfs.order_pdf', ['order' => $order]);
+
+        // Trả về file PDF để trình duyệt tải xuống
+        return $pdf->download('hoa-don-'.$order->id.'.pdf');
     }
 }

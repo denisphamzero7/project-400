@@ -22,7 +22,7 @@ Route::post('/', [OrderItemsController::class, 'store']);
 // 3. CÁC ROUTE ĐỘNG (Dynamic Routes) - Bắt buộc đặt dưới cùng
 // CHÚ Ý: Đã đổi {id} thành {order} để fix lỗi trả về NULL
 // =================================================================
-Route::get('{itemorder}', [OrderItemsController::class, 'show']);
-Route::put('{itemorder}', [OrderItemsController::class, 'update']);
-Route::patch('{itemorder}', [OrderItemsController::class, 'update']);
-Route::delete('{itemorder}', [OrderItemsController::class, 'destroy']);
+Route::get('{orderItem}', [OrderItemsController::class, 'show']);
+Route::put('{orderItem}', [OrderItemsController::class, 'update']);
+Route::patch('{orderItem}', [OrderItemsController::class, 'update']);
+Route::delete('{orderItem}', [OrderItemsController::class, 'destroy']);

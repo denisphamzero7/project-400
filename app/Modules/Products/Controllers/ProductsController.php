@@ -4,7 +4,7 @@ namespace App\Modules\Products\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\ProductModel;
-use App\Modules\Products\Controllers\FilterRequest;
+use App\Modules\Products\Requests\FilterRequest;
 use App\Modules\Products\Service\ProductsService;
 
 use App\Modules\Products\Requests\StoreProductsRequest;
@@ -26,7 +26,7 @@ class ProductsController extends Controller
     public function __construct(private ProductsService $ProductsService) {}
 
     /**
-     * Danh sách khách hàng (Có phân trang và bộ lọc)
+     * Danh sách sản phẩm (Có phân trang và bộ lọc)
      */
     public function index(FilterRequest $request)
     {
@@ -36,7 +36,7 @@ class ProductsController extends Controller
     }
 
     /**
-     * Thống kê khách hàng
+     * Thống kê sản phẩm
      */
     public function stats(FilterRequest $request)
     {
@@ -44,7 +44,7 @@ class ProductsController extends Controller
     }
 
     /**
-     * Chi tiết 1 khách hàng
+     * Chi tiết 1 sản phẩm
      */
     public function show(ProductModel $product)
     {
@@ -54,7 +54,7 @@ class ProductsController extends Controller
     }
 
     /**
-     * Tạo khách hàng mới
+     * Tạo sản phẩm mới
      */
     public function store(StoreProductsRequest $request)
     {
@@ -62,14 +62,14 @@ class ProductsController extends Controller
         try {
             $product = $this->ProductsService->store($data);
 
-            return $this->successResource(new ProductsResource($product), 'Khách hàng đã được tạo thành công!', 201);
+            return $this->successResource(new ProductsResource($product), 'Sản phẩm đã được tạo thành công!', 201);
         } catch (\Throwable $th) {
-            return $this->error('Tạo khách hàng thất bại!', 500, null, $th->getMessage());
+            return $this->error('Tạo sản phẩm thất bại!', 500, null, $th->getMessage());
         }
     }
 
     /**
-     * Cập nhật thông tin khách hàng
+     * Cập nhật thông tin sản phẩm
      */
     public function update(UpdateProductsRequest $request, ProductModel $product)
     {
@@ -79,55 +79,55 @@ class ProductsController extends Controller
             return $this->error($result['message'], $result['code'], null, $result['error_code']);
         }
 
-        return $this->successResource(new ProductsResource($result['customer']), 'Cập nhật thông tin thành công!');
+        return $this->successResource(new ProductsResource($result['product']), 'Cập nhật thông tin thành công!');
     }
 
     /**
-     * Xóa 1 khách hàng
+     * Xóa 1 sản phẩm
      */
     public function destroy(ProductModel $product)
     {
         $this->ProductsService->destroy($product);
 
-        return $this->success(null, 'Khách hàng đã được xóa!');
+        return $this->success(null, 'Sản phẩm đã được xóa!');
     }
 
     /**
-     * Xóa hàng loạt khách hàng
+     * Xóa hàng loạt sản phẩm
      */
     public function bulkDestroy(BulkDestroyProductsRequest $request)
     {
         $this->ProductsService->bulkDestroy($request->ids);
 
-        return $this->success(null, 'Đã xóa thành công các khách hàng được chọn!');
+        return $this->success(null, 'Đã xóa thành công các sản phẩm được chọn!');
     }
 
     /**
-     * Cập nhật trạng thái hàng loạt
+     * Cập nhật trạng thái hàng loạt cho sản phẩm
      */
     public function bulkUpdateStatus(BulkUpdateStatusProductsRequest $request)
     {
         $this->ProductsService->bulkUpdateStatus($request->ids, $request->status);
 
-        return $this->success(null, 'Cập nhật trạng thái hàng loạt thành công!');
+        return $this->success(null, 'Cập nhật trạng thái hàng loạt cho sản phẩm thành công!');
     }
 
     /**
-     * Xuất danh sách khách hàng (Excel)
+     * Xuất danh sách sản phẩm (Excel)
      */
-    public function export(FilterRequest $request)
+    public function export(FilterRequesýt $request)
     {
         // Trả thẳng file BinaryFileResponse từ Service về Client
         return $this->ProductsService->export($request->all());
     }
 
     /**
-     * Nhập danh sách khách hàng từ file Excel
+     * Nhập danh sách sản phẩm từ file Excel
      */
     public function import(ImportProductsRequest $request)
     {
         $this->ProductsService->import($request->file('file'));
 
-        return $this->success(null, 'Import dữ liệu khách hàng thành công.');
+        return $this->success(null, 'Import dữ liệu sản phẩm thành công.');
     }
 }

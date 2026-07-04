@@ -55,10 +55,12 @@ class OrderModel extends Model
         ->when($filters['price_to'] ?? null, function (Builder $query, string $priceTo) {
             $query->where('total_amount', '<=', $priceTo);
         })
-        ->when($filters['sort_by'] ?? 'created_at', function (Builder $query, string $sortBy) use ($filters) {
-            $sortOrder = $filters['sort_order'] ?? 'desc';
-            $query->orderBy($sortBy, $sortOrder);
-        });
+        ;
+
+        // Tách riêng logic sắp xếp để xử lý linh hoạt hơn
+        $sortBy = $filters['sort_by'] ?? 'created_at'; // Mặc định sắp xếp theo ngày tạo
+        $sortOrder = $filters['sort_order'] ?? 'desc'; // Mặc định sắp xếp giảm dần
+        $query->orderBy($sortBy, $sortOrder);
     }
 
     /**

@@ -4,7 +4,7 @@ namespace App\Modules\OrderItems\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\OrderItemModel;
-use App\Modules\OrderItems\Controllers\FilterRequest;
+use App\Modules\OrderItems\Requests\FilterRequest;
 use App\Modules\OrderItems\Service\OrderItemsService;
 
 use App\Modules\OrderItems\Requests\StoreOrderItemsRequest;
@@ -46,11 +46,11 @@ class OrderItemsController extends Controller
     /**
      * Chi tiết 1 đơn hàng
      */
-    public function show(OrderItemModel $order)
+    public function show(OrderItemModel $orderItem)
     {
-        $order = $this->OrderItemsService->show($order);
+        $orderItem = $this->OrderItemsService->show($orderItem);
 
-        return $this->successResource(new OrderItemsResource($order));
+        return $this->successResource(new OrderItemsResource($orderItem));
     }
 
     /**
@@ -60,34 +60,34 @@ class OrderItemsController extends Controller
     {
         $data = $request->validated();
         try {
-            $order = $this->OrderItemsService->store($data);
+            $orderItem = $this->OrderItemsService->store($data);
 
-            return $this->successResource(new OrderItemsResource($order), 'Đơn hàng đã được tạo thành công!', 201);
+            return $this->successResource(new OrderItemsResource($orderItem), 'Chi tiết đơn hàng đã được tạo thành công!', 201);
         } catch (\Throwable $th) {
-            return $this->error('Tạo đơn hàng thất bại!', 500, null, $th->getMessage());
+            return $this->error('Tạo chi tiết đơn hàng thất bại!', 500, null, $th->getMessage());
         }
     }
 
     /**
      * Cập nhật thông tin đơn hàng
      */
-    public function update(UpdateOrderItemsRequest $request, OrderItemModel $order)
+    public function update(UpdateOrderItemsRequest $request, OrderItemModel $orderItem)
     {
-        $result = $this->OrderItemsService->update($order, $request->validated());
+        $result = $this->OrderItemsService->update($orderItem, $request->validated());
 
         if (!$result['ok']) {
             return $this->error($result['message'], $result['code'], null, $result['error_code']);
         }
 
-        return $this->successResource(new OrderItemsResource($result['order']), 'Cập nhật thông tin thành công!');
+        return $this->successResource(new OrderItemsResource($result['order_item']), 'Cập nhật thông tin thành công!');
     }
 
     /**
      * Xóa 1 đơn hàng
      */
-    public function destroy(OrderItemModel $order)
+    public function destroy(OrderItemModel $orderItem)
     {
-        $this->OrderItemsService->destroy($order);
+        $this->OrderItemsService->destroy($orderItem);
 
         return $this->success(null, 'Đơn hàng đã được xóa!');
     }
