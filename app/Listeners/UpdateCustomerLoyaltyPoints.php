@@ -13,6 +13,13 @@ class UpdateCustomerLoyaltyPoints implements ShouldQueue
     use InteractsWithQueue;
 
     /**
+     * The name of the queue the job should be sent to.
+     *
+     * @var string|null
+     */
+    // public $queue = 'loyalty';
+
+    /**
      * Create the event listener.
      */
     public function __construct()

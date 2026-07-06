@@ -134,8 +134,8 @@ class OrdersController extends Controller
     /**
      * Tải về file PDF của một đơn hàng.
      */
-    public function downloadPdf(OrderModel $order)
-    {
-        return $this->OrdersService->downloadPdf($order);
-    }
+//     public function downloadPdf(OrderModel $order)
+//     {
+//         return $this->OrdersService->downloadPdf($order);
+//     }
 }

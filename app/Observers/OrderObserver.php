@@ -58,7 +58,7 @@ class OrderObserver
      */
     public function updating(OrderModel $order): void
     {
-        if ($order->isDirty('status') && $order->status === OrdersStatusEnum::CANCELLED->value) {
+        if ($order->isDirty('status') && $order->status === OrdersStatusEnum::CANCELLED) {
             foreach ($order->items as $item) {
                 $product = ProductModel::find($item->product_id);
                 if ($product) {
@@ -74,16 +74,13 @@ class OrderObserver
      * @param  \App\Models\OrderModel  $order
      * @return void
      */
-    public function updated(OrderModel $order): void
-    {
-        // Kiểm tra xem trạng thái có vừa được thay đổi thành 'completed' không
-        // getOriginal('status') lấy giá trị của status TRƯỚC KHI update
-        if ($order->isDirty('status') && $order->status === OrdersStatusEnum::COMPLETED->value) {
-            // Chỉ kích hoạt event OrderPaid khi trạng thái chuyển thành completed
-            // Điều này đảm bảo event chỉ được bắn một lần duy nhất tại thời điểm thanh toán.
-            event(new \App\Events\OrderPaid($order));
-        }
+   public function updated(OrderModel $order): void
+{
+    // Đổi $order->isDirty('status') thành $order->wasChanged('status')
+    if ($order->wasChanged('status') && $order->status === OrdersStatusEnum::COMPLETED) {
+        event(new \App\Events\OrderPaid($order));
     }
+}
 
     /**
      * Handle the OrderModel "deleted" event.

@@ -52,7 +52,7 @@ class OrdersService
 {
     try {
         // Thực hiện query và gán vào biến
-        $orders = OrderModel::filter($filters)->paginate($limit);
+        $orders = OrderModel::with(['customer', 'items.product'])->filter($filters)->paginate($limit);
 
         // Log danh sách kết quả để xem có gì bên trong
         // Sử dụng toArray() để dễ đọc dữ liệu phân trang trong file log
@@ -253,15 +253,15 @@ class OrdersService
     /**
      * Tạo và trả về file PDF cho một đơn hàng.
      */
-    public function downloadPdf(OrderModel $order)
-    {
-        // Eager load các mối quan hệ cần thiết để tránh query N+1
-        $order->load('customer', 'items.product');
+    // public function downloadPdf(OrderModel $order)
+    // {
+    //     // Eager load các mối quan hệ cần thiết để tránh query N+1
+    //     $order->load('customer', 'items.product');
 
-        // Tạo PDF từ Blade view
-        $pdf = Pdf::loadView('pdfs.order_pdf', ['order' => $order]);
+    //     // Tạo PDF từ Blade view
+    //     $pdf = Pdf::loadView('pdfs.order_pdf', ['order' => $order]);
 
-        // Trả về file PDF để trình duyệt tải xuống
-        return $pdf->download('hoa-don-'.$order->id.'.pdf');
-    }
+    //     // Trả về file PDF để trình duyệt tải xuống
+    //     return $pdf->download('hoa-don-'.$order->id.'.pdf');
+    // }
 }

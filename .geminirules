@@ -48,3 +48,11 @@
 
 - **Báo cáo (Raw Query / Advanced Eloquent)**:
     - **Bắt buộc**: Xây dựng API `/reports/revenue` sử dụng các câu query phức tạp, kết hợp (JOIN) từ 3-4 bảng trở lên để lấy thống kê. Không dùng vòng lặp `foreach` ở cấp độ PHP để đếm số liệu nhằm tối ưu hiệu năng.
+
+- **Kinh nghiệm gỡ lỗi và Best Practices đặc thù (Bắt buộc)**:
+    - **Observer**: Trong các hook `updated()` và `saved()` (chạy sau khi lưu DB), dùng `wasChanged('field')` thay vì `isDirty('field')` vì model không còn được coi là dirty sau khi lưu thành công.
+    - **Enum casting**: Khi thuộc tính model được cast sang Enum (ví dụ: `status` cast sang `OrdersStatusEnum`), khi so sánh logic phải so sánh trực tiếp với Enum case (ví dụ: `$order->status === OrdersStatusEnum::COMPLETED`) hoặc so sánh `.value` ở cả hai vế. Tuyệt đối không so sánh trực tiếp đối tượng Enum với chuỗi string (như `$order->status === 'completed'`) vì sẽ luôn trả về `false`.
+    - **Reverb / Broadcasting**: Trong `config/broadcasting.php`, cấu hình cho `reverb` bắt buộc phải đặt các tham số `host`, `port`, `scheme`, `useTLS` lồng bên trong mảng `'options' => [...]` (không đặt ngoài cùng của mảng kết nối). Nếu đặt ngoài cùng, Pusher SDK sẽ trỏ về server Pusher chính thức (`api-mt1.pusher.com`) và báo lỗi `auth_key should be a valid app key`.
+    - **Event/Listener**: Laravel 11+ có chức năng tự động phát hiện sự kiện (Event Auto-Discovery) theo mặc định. Không đăng ký lại listener thủ công trong `AppServiceProvider` nếu listener đó đã type-hint sự kiện trong hàm `handle()`, tránh việc listener bị đăng ký trùng lặp và job bị đẩy vào queue 2 lần.
+    - **Horizon & Config Cache**: Mỗi khi thay đổi `.env` hoặc file trong thư mục `config/`, bắt buộc phải chạy `php artisan config:clear` và khởi động lại tiến trình Horizon (hoặc restart container Horizon) vì Horizon chạy dưới dạng daemon lưu giữ cấu hình trong memory.
+

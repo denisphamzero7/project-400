@@ -9,9 +9,8 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail; // Mail không được sử dụng trong Job này
 use Illuminate\Support\Facades\Storage;
-use PDF;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ProcessOrderInvoicePDF implements ShouldQueue
 {
@@ -47,7 +46,7 @@ class ProcessOrderInvoicePDF implements ShouldQueue
         $order->load('customer', 'items.product')->refresh();
 
         // Tạo PDF từ Blade view (tương tự OrdersService)
-        $pdf = PDF::loadView('pdfs.order_pdf', ['order' => $order]);
+        $pdf = Pdf::loadView('pdfs.order_pdf', ['order' => $order]);
         $filename = "invoices/hoa-don-{$order->id}.pdf";
 
         // Lưu file vào storage/app/public/invoices/

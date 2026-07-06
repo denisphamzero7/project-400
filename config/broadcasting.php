@@ -35,12 +35,14 @@ return [
             'key' => env('REVERB_APP_KEY'),
             'secret' => env('REVERB_APP_SECRET'),
             'app_id' => env('REVERB_APP_ID'),
-            'host' => env('REVERB_HOST'),
-            'port' => env('REVERB_PORT', 443),
-            'scheme' => env('REVERB_SCHEME', 'https'),
-            'options' => [],
-            'curl_options' => [
-                // CURLOPT_FOLLOWLOCATION => true,
+            'options' => [
+                'host' => env('REVERB_HOST', 'localhost'),
+                'port' => env('REVERB_PORT', 8080),
+                'scheme' => env('REVERB_SCHEME', 'http'),
+                'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
+            ],
+            'client_options' => [
+                // Guzzle client options
             ],
         ],
 

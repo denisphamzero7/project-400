@@ -4,48 +4,29 @@ namespace App\Modules\Orders\Events;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class OrderActionEvent implements ShouldBroadcast
+class OrderActionEvent implements ShouldBroadcast, ShouldQueue
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $action;
-    public $payload;
+    // Đẩy vào hàng đợi ưu tiên cao để cập nhật UI nhanh
+    public $queue = 'instant';
 
-    /**
-     * Create a new event instance.
-     *
-     * @param string $action
-     * @param mixed $payload
-     */
-    public function __construct(string $action, $payload)
+    public function __construct(public string $action, public mixed $data)
     {
-        $this->action = $action;
-        $this->payload = $payload;
     }
 
-    /**
-     * Get the channels the event should broadcast on.
-     *
-     * @return \Illuminate\Broadcasting\Channel|array
-     */
-    public function broadcastOn()
+    public function broadcastOn(): array
     {
-        return new PrivateChannel('orders');
+        return [new Channel('orders-channel')];
     }
 
-    /**
-     * The event's broadcast name.
-     *
-     * @return string
-     */
-    public function broadcastAs()
+    public function broadcastAs(): string
     {
-        return $this->action;
+        return 'OrderEvent';
     }
 }

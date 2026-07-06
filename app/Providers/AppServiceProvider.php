@@ -41,12 +41,5 @@ class AppServiceProvider extends ServiceProvider
     {
         OrderModel::observe(OrderObserver::class);
         OrderItemModel::observe(OrderItemObserver::class);
-
-        // Manually register events and listeners because EventServiceProvider is missing
-        foreach ($this->listen as $event => $listeners) {
-            foreach ($listeners as $listener) {
-                Event::listen($event, $listener);
-            }
-        }
     }
 }
