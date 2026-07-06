@@ -74,13 +74,16 @@ class OrderObserver
      * @param  \App\Models\OrderModel  $order
      * @return void
      */
-   public function updated(OrderModel $order): void
-{
-    // Đổi $order->isDirty('status') thành $order->wasChanged('status')
-    if ($order->wasChanged('status') && $order->status === OrdersStatusEnum::COMPLETED) {
-        event(new \App\Events\OrderPaid($order));
+    public function updated(OrderModel $order): void
+    {
+        if ($order->wasChanged('status')) {
+            if ($order->status === OrdersStatusEnum::COMPLETED) {
+                event(new \App\Events\OrderPaid($order));
+            } elseif ($order->status === OrdersStatusEnum::CANCELLED) {
+                $order->customer->notify(new \App\Notifications\OrderCancelledNotification($order));
+            }
+        }
     }
-}
 
     /**
      * Handle the OrderModel "deleted" event.

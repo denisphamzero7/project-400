@@ -36,7 +36,7 @@ class SendOrderConfirmationEmail implements ShouldQueue
         $event->order->customer->notify(new OrderConfirmationNotification($event->order));
 
         // Đẩy job xử lý hóa đơn vào queue
-        ProcessOrderInvoicePDF::dispatch($event->order);
+        ProcessOrderInvoicePDF::dispatch($event->order->id);
 
         Log::info("Đã gửi thông báo xác nhận đơn hàng thành công cho đơn hàng ID: {$event->order->id}");
     }
