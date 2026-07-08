@@ -4,203 +4,246 @@
     <meta charset="utf-8">
     <title>Hóa đơn #{{ $order->id }}</title>
     <style>
+        @page {
+            margin: 0;
+        }
         body {
+            margin: 0;
+            padding: 0;
             font-family: "DejaVu Sans", sans-serif;
-            font-size: 13px;
-            color: #333;
-            line-height: 1.5;
+            font-size: 12px;
+            color: #333333;
+            background-color: #f6f6f6;
+            line-height: 1.4;
         }
         .invoice-box {
-            max-width: 800px;
-            margin: auto;
-            padding: 10px;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            min-height: 100%;
+            box-sizing: border-box;
         }
-        .header-table {
-            width: 100%;
-            border-collapse: collapse;
+        .header {
+            background-color: #00B14F;
+            padding: 25px 20px;
+            color: #ffffff;
+        }
+        .header-logo {
+            font-size: 26px;
+            font-weight: bold;
+            letter-spacing: -0.5px;
+            margin: 0;
+        }
+        .content {
+            padding: 25px 20px;
+        }
+        .status-title {
+            color: #00B14F;
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 0;
             margin-bottom: 20px;
         }
-        .header-table td {
-            vertical-align: top;
+        .summary-box {
+            margin-bottom: 25px;
+            border-bottom: 1px solid #e5e5e5;
+            padding-bottom: 15px;
+            width: 100%;
         }
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-            color: #4f46e5;
-        }
-        .company-info {
-            text-align: right;
-            font-size: 11px;
-            color: #666;
-        }
-        .title {
-            text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-            margin: 20px 0;
-            color: #111827;
+        .summary-title {
+            font-size: 12px;
+            color: #888888;
+            margin: 0;
             text-transform: uppercase;
+        }
+        .summary-value {
+            font-size: 20px;
+            color: #00B14F;
+            font-weight: bold;
+            margin: 5px 0 0 0;
         }
         .details-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
         }
         .details-table td {
-            padding: 5px 0;
             vertical-align: top;
+            padding: 0;
         }
-        .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
+        .section-title {
+            color: #00B14F;
+            font-size: 13px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 5px;
+            letter-spacing: 0.5px;
         }
-        .items-table th {
-            background-color: #f3f4f6;
-            border: 1px solid #e5e7eb;
-            padding: 8px;
-            text-align: left;
+        .info-label {
+            font-size: 10px;
+            color: #888888;
+            text-transform: uppercase;
+            margin-top: 8px;
+            margin-bottom: 2px;
+        }
+        .info-value {
+            font-size: 13px;
+            color: #333333;
+            margin: 0 0 8px 0;
             font-weight: bold;
         }
-        .items-table td {
-            border: 1px solid #e5e7eb;
-            padding: 8px;
+        .item-row {
+            font-size: 12px;
+            border-bottom: 1px dashed #f0f0f0;
+            padding: 6px 0;
         }
-        .text-right {
-            text-align: right;
+        .invoice-card {
+            background-color: #fafafa;
+            border: 1px solid #eeeeee;
+            border-radius: 4px;
+            padding: 15px;
         }
-        .text-center {
-            text-align: center;
-        }
-        .total-section {
-            margin-top: 20px;
+        .invoice-row {
+            font-size: 12px;
+            margin-bottom: 6px;
             width: 100%;
-            border-collapse: collapse;
         }
-        .total-section td {
-            padding: 5px 0;
+        .invoice-total {
+            font-size: 14px;
+            font-weight: bold;
+            border-top: 2px double #dddddd;
+            border-bottom: 2px double #dddddd;
+            padding: 8px 0;
+            margin-top: 10px;
+            width: 100%;
         }
         .footer {
-            margin-top: 40px;
+            margin-top: 50px;
+            padding: 20px;
             text-align: center;
             font-size: 11px;
-            color: #9ca3af;
-            border-top: 1px solid #e5e7eb;
-            padding-top: 10px;
-        }
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            font-size: 11px;
-            font-weight: bold;
-            border-radius: 4px;
-        }
-        .badge-completed {
-            background-color: #d1fae5;
-            color: #065f46;
-        }
-        .badge-pending {
-            background-color: #fef3c7;
-            color: #92400e;
-        }
-        .badge-cancelled {
-            background-color: #fee2e2;
-            color: #991b1b;
-        }
-        .badge-default {
-            background-color: #e5e7eb;
-            color: #374151;
+            color: #999999;
+            border-top: 1px dashed #e5e5e5;
         }
     </style>
 </head>
 <body>
     <div class="invoice-box">
-        <!-- Header -->
-        <table class="header-table">
-            <tr>
-                <td>
-                    <div class="logo">Laravel Store</div>
-                    <div style="margin-top: 5px; font-size: 12px; color: #4b5563;">Hóa Đơn Bán Hàng</div>
-                </td>
-                <td class="company-info">
-                    <strong>Công ty TNHH Laravel Việt Nam</strong><br>
-                    Địa chỉ: 123 Đường Láng, Đống Đa, Hà Nội<br>
-                    Email: support@laravelstore.vn<br>
-                    Hotline: 1900 1234
-                </td>
-            </tr>
-        </table>
-
-        <div class="title">Hóa Đơn Mua Hàng</div>
-
-        <!-- Thông tin đơn hàng & Khách hàng -->
-        <table class="details-table">
-            <tr>
-                <td style="width: 50%;">
-                    <strong>Thông tin khách hàng:</strong><br>
-                    Họ và tên: {{ $order->customer->name }}<br>
-                    Email: {{ $order->customer->email }}
-                </td>
-                <td style="width: 50%;" class="text-right">
-                    <strong>Thông tin hóa đơn:</strong><br>
-                    Mã đơn hàng: #{{ $order->id }}<br>
-                    Ngày đặt: {{ $order->created_at?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i') }}<br>
-                    Trạng thái: 
-                    @if($order->status === \App\Enums\OrdersStatusEnum::COMPLETED)
-                        <span class="badge badge-completed">Đã hoàn thành</span>
-                    @elseif($order->status === \App\Enums\OrdersStatusEnum::PENDING)
-                        <span class="badge badge-pending">Chờ xử lý</span>
-                    @elseif($order->status === \App\Enums\OrdersStatusEnum::CANCELLED)
-                        <span class="badge badge-cancelled">Đã hủy</span>
-                    @else
-                        <span class="badge badge-default">{{ $order->status->value ?? 'Chưa xác định' }}</span>
-                    @endif
-                </td>
-            </tr>
-        </table>
-
-        <!-- Chi tiết sản phẩm -->
-        <table class="items-table">
-            <thead>
-                <tr>
-                    <th class="text-center" style="width: 5%;">STT</th>
-                    <th>Tên sản phẩm</th>
-                    <th class="text-right" style="width: 15%;">Đơn giá</th>
-                    <th class="text-center" style="width: 10%;">SL</th>
-                    <th class="text-right" style="width: 20%;">Thành tiền</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($order->items as $index => $item)
-                    <tr>
-                        <td class="text-center">{{ $index + 1 }}</td>
-                        <td>{{ $item->product->name }}</td>
-                        <td class="text-right">{{ number_format($item->price, 0, ',', '.') }}đ</td>
-                        <td class="text-center">{{ $item->quantity }}</td>
-                        <td class="text-right">{{ number_format($item->price * $item->quantity, 0, ',', '.') }}đ</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-
-        <!-- Tổng cộng -->
-        <table class="total-section">
-            <tr>
-                <td style="width: 60%;"></td>
-                <td style="width: 20%; font-weight: bold;" class="text-right">Tổng cộng:</td>
-                <td style="width: 20%; font-weight: bold; color: #4f46e5; font-size: 15px;" class="text-right">
-                    {{ number_format($order->total_amount, 0, ',', '.') }} VNĐ
-                </td>
-            </tr>
-        </table>
-
-        <div style="margin-top: 30px; font-size: 12px; font-style: italic;">
-            * Lưu ý: Hóa đơn này được tạo tự động bởi hệ thống và có giá trị xác nhận giao dịch trực tuyến.
+        <!-- Green Header Bar -->
+        <div class="header">
+            <div class="header-logo">Laravel Store</div>
         </div>
-
-        <!-- Footer -->
-        <div class="footer">
-            Cảm ơn quý khách đã mua sắm tại Laravel Store!
+        
+        <!-- Main Body -->
+        <div class="content">
+            <div class="status-title">Hóa Đơn Thanh Toán</div>
+            
+            <!-- Summary Top Row -->
+            <table class="summary-box">
+                <tr>
+                    <td style="width: 50%; vertical-align: bottom;">
+                        <p class="summary-title">Tổng cộng</p>
+                        <p class="summary-value">{{ number_format($order->total_amount, 0, ',', '.') }} đ</p>
+                    </td>
+                    <td style="width: 50%; text-align: right; vertical-align: bottom;">
+                        <p class="summary-title">Ngày hóa đơn</p>
+                        <p style="font-size: 14px; margin: 5px 0 0 0; font-weight: bold;">
+                            {{ $order->created_at?->format('d M Y') ?? now()->format('d M Y') }}
+                        </p>
+                    </td>
+                </tr>
+            </table>
+            
+            <!-- Details Layout (2 columns using tables) -->
+            <table class="details-table">
+                <tr>
+                    <!-- Left Column: Order details -->
+                    <td style="width: 55%; padding-right: 15px;">
+                        <div class="section-title">Chi tiết đơn hàng</div>
+                        
+                        <div class="info-label">Khách hàng</div>
+                        <div class="info-value">{{ $order->customer->name }}</div>
+                        
+                        <div class="info-label">Email</div>
+                        <div class="info-value">{{ $order->customer->email }}</div>
+                        
+                        <div class="info-label">Mã đơn hàng</div>
+                        <div class="info-value" style="font-family: monospace; font-size: 13px; color: #555555;">
+                            #{{ $order->id }}
+                        </div>
+                        
+                        <div class="info-label" style="margin-top: 15px; margin-bottom: 5px;">Danh sách sản phẩm</div>
+                        <table style="width: 100%;">
+                            @foreach($order->items as $item)
+                                <tr>
+                                    <td class="item-row" style="padding: 6px 0; width: 70%;">
+                                        <div style="font-weight: bold; font-size: 12px;">{{ $item->product->name }}</div>
+                                        <div style="color: #666666; font-size: 10px;">
+                                            {{ number_format($item->price, 0, ',', '.') }} đ &times; {{ $item->quantity }}
+                                        </div>
+                                    </td>
+                                    <td class="item-row" style="text-align: right; vertical-align: middle; font-weight: bold; font-size: 12px; width: 30%;">
+                                        {{ number_format($item->price * $item->quantity, 0, ',', '.') }} đ
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </table>
+                    </td>
+                    
+                    <!-- Right Column: Cost box -->
+                    <td style="width: 45%;">
+                        <div class="section-title">Hóa đơn bán hàng</div>
+                        
+                        <div class="invoice-card">
+                            <table style="width: 100%;">
+                                <tr>
+                                    <td class="info-label" style="margin-top: 0;">Phương thức thanh toán</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 13px; font-weight: bold; padding-bottom: 8px; border-bottom: 1px dashed #dddddd;">
+                                        Thanh toán trực tuyến
+                                    </td>
+                                </tr>
+                                
+                                <tr>
+                                    <td style="padding-top: 8px;">
+                                        <table class="invoice-row">
+                                            <tr>
+                                                <td style="color: #666666;">Tạm tính</td>
+                                                <td style="text-align: right;">{{ number_format($order->total_amount, 0, ',', '.') }} đ</td>
+                                            </tr>
+                                        </table>
+                                        <table class="invoice-row">
+                                            <tr>
+                                                <td style="color: #666666;">Khuyến mại</td>
+                                                <td style="text-align: right; color: #e11d48;">- 0 đ</td>
+                                            </tr>
+                                        </table>
+                                        
+                                        <table class="invoice-total">
+                                            <tr>
+                                                <td>TỔNG CỘNG</td>
+                                                <td style="text-align: right; color: #00B14F;">
+                                                    {{ number_format($order->total_amount, 0, ',', '.') }} đ
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+            
+            <!-- Footer -->
+            <div class="footer">
+                <div>Cảm ơn quý khách đã mua sắm tại Laravel Store!</div>
+                <div style="margin-top: 5px; font-size: 9px; color: #aaaaaa;">
+                    Hóa đơn điện tử được tạo tự động bởi hệ thống bán hàng trực tuyến.
+                </div>
+            </div>
         </div>
     </div>
 </body>

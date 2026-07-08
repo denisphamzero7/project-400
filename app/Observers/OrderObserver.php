@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Enums\OrdersStatusEnum;
 use App\Models\OrderModel;
 use App\Models\ProductModel;
+use Illuminate\Support\Facades\Storage;
 
 class OrderObserver
 {
@@ -58,7 +59,9 @@ class OrderObserver
      */
     public function updating(OrderModel $order): void
     {
-        if ($order->isDirty('status') && $order->status === OrdersStatusEnum::CANCELLED) {
+        if ($order->isDirty('status') && 
+            in_array($order->status, [OrdersStatusEnum::CANCELLED, OrdersStatusEnum::EXPIRED], true)
+        ) {
             foreach ($order->items as $item) {
                 $product = ProductModel::find($item->product_id);
                 if ($product) {
@@ -93,7 +96,14 @@ class OrderObserver
      */
     public function deleted(OrderModel $order): void
     {
-        //
+        // 1. Xóa các chi tiết đơn hàng (order_items) liên quan để tránh rác CSDL
+        $order->items()->delete();
+
+        // 2. Xóa file hóa đơn PDF tương ứng trong storage nếu tồn tại
+        $pdfPath = "invoices/hoa-don-{$order->id}.pdf";
+        if (Storage::disk('public')->exists($pdfPath)) {
+            Storage::disk('public')->delete($pdfPath);
+        }
     }
 
     /**

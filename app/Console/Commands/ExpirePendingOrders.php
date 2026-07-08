@@ -21,28 +21,35 @@ class ExpirePendingOrders extends Command
      *
      * @var string
      */
-    protected $description = 'Find pending orders older than 48 hours and set their status to expired';
+    protected $description = 'Tìm các đơn hàng đang chờ xử lý có thời gian xử lý cũ hơn khoảng thời gian đã cấu hình và đặt trạng thái của chúng thành hết hạn.';
 
     /**
      * Execute the console command.
      */
     public function handle()
     {
-        $this->info('Starting to expire old pending orders...');
-        Log::info('Scheduler: Running ExpirePendingOrders command.');
+        $this->info('Bắt đầu hết hạn các đơn hàng đang chờ xử lý cũ...');
+        Log::info('Lập lịch: Đang chạy lệnh ExpirePendingOrders.');
 
-        $fortyEightHoursAgo = now()->subHours(48);
+        $hours = config('orders.expire_hours', 48);
+        $thresholdTime = now()->subHours($hours);
 
-        $expiredCount = OrderModel::where('status', OrdersStatusEnum::PENDING)
-            ->where('created_at', '<=', $fortyEightHoursAgo)
-            ->update(['status' => OrdersStatusEnum::EXPIRED]);
+        $orders = OrderModel::where('status', OrdersStatusEnum::PENDING)
+            ->where('created_at', '<=', $thresholdTime)
+            ->get();
+
+        $expiredCount = 0;
+        foreach ($orders as $order) {
+            $order->update(['status' => OrdersStatusEnum::EXPIRED]);
+            $expiredCount++;
+        }
 
         if ($expiredCount > 0) {
             $this->info("Successfully expired {$expiredCount} orders.");
-            Log::info("Scheduler: Expired {$expiredCount} pending orders older than 48 hours.");
+            Log::info("Lập lịch: Đã hết hạn {$expiredCount} đơn hàng đang chờ xử lý cũ hơn {$hours} giờ.");
         } else {
-            $this->info('No pending orders to expire.');
-            Log::info('Scheduler: No pending orders to expire.');
+            $this->info('Không có đơn hàng nào sắp hết hạn.');
+            Log::info('Lập lịch: Không có đơn hàng đang chờ xử lý nào để hết hạn.');
         }
 
         $this->info('Finished expiring old pending orders.');

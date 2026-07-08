@@ -115,7 +115,7 @@ class ProductsController extends Controller
     /**
      * Xuất danh sách sản phẩm (Excel)
      */
-    public function export(FilterRequesýt $request)
+    public function export(FilterRequest $request)
     {
         // Trả thẳng file BinaryFileResponse từ Service về Client
         return $this->ProductsService->export($request->all());

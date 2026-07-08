@@ -36,12 +36,7 @@ class OrderConfirmationNotification extends Notification implements ShouldQueue
     {
         return (new MailMessage)
                     ->subject('Xác nhận đơn hàng của bạn #' . $this->order->id)
-                    ->greeting('Xin chào ' . $this->order->customer->name . ',')
-                    ->line('Cảm ơn bạn đã đặt hàng tại cửa hàng của chúng tôi! Dưới đây là thông tin chi tiết đơn hàng của bạn:')
-                    ->line('Mã đơn hàng: #' . $this->order->id)
-                    ->line('Tổng tiền: ' . number_format($this->order->total_amount, 0, ',', '.') . ' VNĐ')
-                    ->action('Xem đơn hàng của bạn', env('FRONTEND_URL', 'http://localhost:8000') . '/orders/' . $this->order->id)
-                    ->line('Chúng tôi sẽ thông báo cho bạn khi đơn hàng được giao. Cảm ơn bạn đã tin tưởng!');
+                    ->view('emails.order_confirmation', ['order' => $this->order]);
     }
 
     /**
