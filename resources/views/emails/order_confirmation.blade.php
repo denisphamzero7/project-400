@@ -142,12 +142,12 @@
                             <h1 class="header-logo">Laravel Store</h1>
                         </td>
                     </tr>
-                    
+
                     <!-- Main Body -->
                     <tr>
                         <td class="content">
                             <h2 class="status-title">Đơn hàng đã thanh toán thành công!</h2>
-                            
+
                             <!-- Summary Top Row -->
                             <table width="100%" cellspacing="0" cellpadding="0" border="0" class="summary-box">
                                 <tr>
@@ -163,25 +163,25 @@
                                     </td>
                                 </tr>
                             </table>
-                            
+
                             <!-- Details Table (2 columns layout) -->
                             <table width="100%" cellspacing="0" cellpadding="0" border="0">
                                 <tr>
                                     <!-- Left Column: Order details -->
                                     <td width="55%" style="vertical-align: top; padding-right: 15px;">
                                         <div class="section-title">Chi tiết đơn hàng</div>
-                                        
+
                                         <div class="info-label">Khách hàng</div>
                                         <div class="info-value">{{ $order->customer->name }}</div>
-                                        
+
                                         <div class="info-label">Email</div>
                                         <div class="info-value">{{ $order->customer->email }}</div>
-                                        
+
                                         <div class="info-label">Mã đơn hàng</div>
                                         <div class="info-value" style="font-family: monospace; font-size: 14px; font-weight: bold; color: #555555;">
                                             #{{ $order->id }}
                                         </div>
-                                        
+
                                         <div class="info-label" style="margin-top: 15px; margin-bottom: 5px;">Sản phẩm đã mua</div>
                                         <table width="100%" cellspacing="0" cellpadding="0" border="0">
                                             @foreach($order->items as $item)
@@ -199,13 +199,13 @@
                                             @endforeach
                                         </table>
                                     </td>
-                                    
+
                                     <!-- Right Column: Cost box -->
                                     <td width="45%" style="vertical-align: top; padding-left: 5px;">
                                         <div class="section-title">Hóa đơn của bạn</div>
-                                        
+
                                         <div class="invoice-card">
-                                            <table width="100%" cellspacing="0" cellpadding="0" border="0">
+                                            <table width="      100%" cellspacing="0" cellpadding="0" border="0">
                                                 <tr>
                                                     <td class="info-label" style="margin-top: 0;">Phương thức thanh toán</td>
                                                 </tr>
@@ -214,7 +214,7 @@
                                                         Thanh toán trực tuyến
                                                     </td>
                                                 </tr>
-                                                
+
                                                 <tr>
                                                     <td style="padding-top: 12px;">
                                                         <table width="100%" cellspacing="0" cellpadding="0" border="0" class="invoice-row">
@@ -229,7 +229,7 @@
                                                                 <td align="right" style="color: #e11d48;">- 0 đ</td>
                                                             </tr>
                                                         </table>
-                                                        
+
                                                         <table width="100%" cellspacing="0" cellpadding="0" border="0" class="invoice-total">
                                                             <tr>
                                                                 <td>TỔNG CỘNG</td>
@@ -245,7 +245,7 @@
                                     </td>
                                 </tr>
                             </table>
-                            
+
                             <!-- Call to Action -->
                             <table width="100%" cellspacing="0" cellpadding="0" border="0">
                                 <tr>
@@ -258,7 +258,7 @@
                             </table>
                         </td>
                     </tr>
-                    
+
                     <!-- Footer -->
                     <tr>
                         <td class="footer">

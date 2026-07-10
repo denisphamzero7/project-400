@@ -31,9 +31,9 @@ class BigOrderPlaced implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
-        // Kênh riêng tư cho admin
+        // Kênh public cho tất cả mọi người
         return [
-            new PrivateChannel('admin'),
+            new Channel('admin'),
         ];
     }
 
