@@ -9,6 +9,8 @@ use App\Listeners\UpdateCustomerLoyaltyPoints;
 use App\Observers\OrderItemObserver;
 use App\Models\OrderModel;
 use App\Observers\OrderObserver;
+use App\Modules\Customers\Events\CustomerActionEvent;
+use App\Modules\Customers\Listens\CustomerListens;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -23,6 +25,9 @@ class AppServiceProvider extends ServiceProvider
         OrderPaid::class => [
             SendOrderConfirmationEmail::class,
             UpdateCustomerLoyaltyPoints::class,
+        ],
+        CustomerActionEvent::class => [
+            CustomerListens::class,
         ],
     ];
 
@@ -41,5 +46,11 @@ class AppServiceProvider extends ServiceProvider
     {
         OrderModel::observe(OrderObserver::class);
         OrderItemModel::observe(OrderItemObserver::class);
+
+        foreach ($this->listen as $event => $listeners) {
+            foreach ($listeners as $listener) {
+                Event::listen($event, $listener);
+            }
+        }
     }
 }

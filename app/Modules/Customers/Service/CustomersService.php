@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use App\Modules\Customers\Events\CustomerActionEvent;
+use Illuminate\Support\Facades\Log;
 
 class CustomersService
 {
@@ -62,7 +63,10 @@ class CustomersService
         });
 
         // Tùy chọn: Bắn realtime nếu cần
-        broadcast(new CustomerActionEvent('created', $customer->toArray()));
+        event(new CustomerActionEvent('created', $customer->toArray()));
+
+        // Ghi log ra file laravel.log
+        Log::info('Tạo khách hàng thành công! ID khách hàng: ' . $customer->id);
 
         return $customer;
     }
@@ -78,7 +82,7 @@ class CustomersService
                 return $customer;
             });
 
-            broadcast(new CustomerActionEvent('updated', $updatedCustomer->toArray()));
+            event(new CustomerActionEvent('updated', $updatedCustomer->toArray()));
 
             return [
                 'ok' => true,
@@ -102,7 +106,7 @@ class CustomersService
         $id = $customer->id;
         $customer->delete($id);
 
-        broadcast(new CustomerActionEvent('deleted', ['id' => $id]));
+        event(new CustomerActionEvent('deleted', ['id' => $id]));
     }
 
     /**
@@ -114,7 +118,7 @@ class CustomersService
             CustomersModel::whereIn('id', $ids)->delete();
         });
 
-        broadcast(new CustomerActionEvent('bulk-deleted', ['ids' => $ids]));
+        event(new CustomerActionEvent('bulk-deleted', ['ids' => $ids]));
     }
 
     /**
@@ -124,7 +128,7 @@ class CustomersService
     {
         CustomersModel::whereIn('id', $ids)->update(['status' => $status]);
 
-        broadcast(new CustomerActionEvent('bulk-status-updated', ['ids' => $ids, 'status' => $status]));
+        event(new CustomerActionEvent('bulk-status-updated', ['ids' => $ids, 'status' => $status]));
     }
 
     /**

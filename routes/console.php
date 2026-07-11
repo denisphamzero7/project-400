@@ -3,11 +3,11 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
-use App\Console\Commands\ExpirePendingOrders;
+use App\Jobs\ExpirePendingOrdersJob;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Schedule the command to run hourly
-Schedule::command(ExpirePendingOrders::class)->hourly();
+// Schedule the Job to run hourly through Horizon queue
+Schedule::job(new ExpirePendingOrdersJob)->hourly();
