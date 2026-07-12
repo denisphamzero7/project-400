@@ -25,47 +25,76 @@ class ReportsService
 
     private function getRevenueByProduct()
     {
-        // Yêu cầu: Viết một câu SQL thuần (Raw Query) hoặc Advanced Eloquent kết hợp (Join)
-        // Báo cáo trả về: Doanh thu theo từng sản phẩm
         return ProductModel::query()
-            ->select('products.id', 'products.name')
-            ->withSum(['orderItems' => function ($query) {
-                // Chỉ tính doanh thu từ các đơn hàng đã hoàn thành
-                $query->whereHas('order', fn($q) => $q->where('status', OrdersStatusEnum::COMPLETED));
-            }], DB::raw('quantity * price'))
-            ->orderByDesc('order_items_sum_quantity_price')
+            ->select('products.id', 'products.name', 'products.stock_quantity')
+            // Cột Tổng doanh thu
+            ->selectRaw('COALESCE((
+                SELECT SUM(oi.quantity * oi.price)
+                FROM order_items oi
+                JOIN orders o ON o.id = oi.order_id
+                WHERE oi.product_id = products.id
+                  AND o.status = ?
+            ), 0) AS total_revenue', [OrdersStatusEnum::COMPLETED->value])
+            // Cột Tổng số lượng đã bán
+            ->selectRaw('COALESCE((
+                SELECT SUM(oi.quantity)
+                FROM order_items oi
+                JOIN orders o ON o.id = oi.order_id
+                WHERE oi.product_id = products.id
+                  AND o.status = ?
+            ), 0) AS total_sold', [OrdersStatusEnum::COMPLETED->value])
+            ->orderByDesc('total_revenue')
             ->get();
+
     }
 
     private function getTopSpendingCustomers()
     {
-        // Yêu cầu: top 5 khách hàng chi tiêu nhiều nhất
-        return CustomersModel::query()
-            ->select('customers.id', 'customers.name', 'customers.email')
-            ->withSum(['orders' => fn($q) => $q->where('status', OrdersStatusEnum::COMPLETED)], 'total_amount')
-            ->orderByDesc('orders_sum_total_amount')
-            ->limit(5)
-            ->get();
+     // Bước 1: Quét bảng orders để tìm 5 ID xuất sắc nhất
+    $topCustomersIds = DB::table('orders')
+        ->selectRaw('customer_id, SUM(total_amount) as total_spent')
+        ->where('status', OrdersStatusEnum::COMPLETED->value)
+        ->groupBy('customer_id')
+        ->orderByDesc('total_spent')
+        ->limit(5)
+        ->get();
+
+    if ($topCustomersIds->isEmpty()) {
+        return collect();
+    }
+
+    // Bước 2: Chỉ query đúng 5 user đó từ bảng Customers
+    $customers = CustomersModel::whereIn('id', $topCustomersIds->pluck('customer_id'))
+        ->get(['id', 'name', 'email'])
+        ->keyBy('id');
+
+    // Bước 3: Ghép dữ liệu tiền vào object để trả về
+    return $topCustomersIds->map(function ($stat) use ($customers) {
+        $customer = $customers->get($stat->customer_id);
+        if ($customer) {
+            $customer->total_spent = $stat->total_spent;
+            return $customer;
+        }
+    })->filter();
     }
 
     private function getMonthlyCancellationRate()
     {
-        // Yêu cầu: tỷ lệ đơn hàng bị hủy trong tháng
-        $startOfMonth = now()->startOfMonth();
+      $startOfMonth = now()->startOfMonth();
 
-        $totalOrdersThisMonth = OrderModel::query()
-            ->where('created_at', '>=', $startOfMonth)
-            ->count();
+    // Lấy TỔNG ĐƠN và TỔNG ĐƠN HỦY trong CÙNG MỘT lần quét
+    $stats = OrderModel::query()
+        ->where('created_at', '>=', $startOfMonth)
+        ->selectRaw('
+            COUNT(id) as total_orders,
+            SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as cancelled_orders
+        ', [OrdersStatusEnum::CANCELLED->value])
+        ->first();
 
-        if ($totalOrdersThisMonth === 0) {
-            return 0;
-        }
+    if (!$stats || $stats->total_orders == 0) {
+        return 0;
+    }
 
-        $cancelledOrdersThisMonth = OrderModel::query()
-            ->where('status', OrdersStatusEnum::CANCELLED)
-            ->where('created_at', '>=', $startOfMonth)
-            ->count();
-
-        return round(($cancelledOrdersThisMonth / $totalOrdersThisMonth) * 100, 2);
+    return round(($stats->cancelled_orders / $stats->total_orders) * 100, 2);
     }
 }

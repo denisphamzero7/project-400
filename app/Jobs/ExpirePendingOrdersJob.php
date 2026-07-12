@@ -23,30 +23,25 @@ class ExpirePendingOrdersJob implements ShouldQueue
         //
     }
 
-    /**
+    /**gi
      * Execute the job.
      */
-    public function handle(): void
-    {
-        Log::info('Job Queue: Đang chạy tiến trình quét đơn hàng hết hạn ngầm.');
+  public function handle(): void
+{
+    Log::info('Job Queue: Đang chạy tiến trình quét đơn hàng hết hạn ngầm.');
 
-        $hours = config('orders.expire_hours', 48);
-        $thresholdTime = now()->subHours($hours);
+    $hours = config('orders.expire_hours', 48);
+    $thresholdTime = now()->subHours($hours);
 
-        $orders = OrderModel::where('status', OrdersStatusEnum::PENDING)
-            ->where('created_at', '<=', $thresholdTime)
-            ->get();
+    // Cập nhật trực tiếp trên Database bằng 1 câu lệnh duy nhất
+    $expiredCount = OrderModel::where('status', OrdersStatusEnum::PENDING)
+        ->where('created_at', '<=', $thresholdTime)
+        ->update(['status' => OrdersStatusEnum::EXPIRED]);
 
-        $expiredCount = 0;
-        foreach ($orders as $order) {
-            $order->update(['status' => OrdersStatusEnum::EXPIRED]);
-            $expiredCount++;
-        }
-
-        if ($expiredCount > 0) {
-            Log::info("Job Queue: Đã xử lý hết hạn thành công {$expiredCount} đơn hàng chờ xử lý cũ hơn {$hours} giờ.");
-        } else {
-            Log::info('Job Queue: Không có đơn hàng đang chờ xử lý nào đến hạn.');
-        }
+    if ($expiredCount > 0) {
+        Log::info("Job Queue: Đã xử lý hết hạn thành công {$expiredCount} đơn hàng.");
+    } else {
+        Log::info('Job Queue: Không có đơn hàng đang chờ xử lý nào đến hạn.');
     }
+}
 }
