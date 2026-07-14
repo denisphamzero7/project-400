@@ -5,7 +5,7 @@ namespace App\Modules\Customers\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\CustomersModel;
 
-use App\Modules\Customers\Controllers\FilterRequest as ControllersFilterRequest;
+use App\Modules\Customers\Requests\FilterRequest;
 use App\Modules\Customers\Service\CustomersService;
 
 use App\Modules\Customers\Requests\StoreCustomersRequest;
@@ -29,7 +29,7 @@ class CustomersController extends Controller
     /**
      * Danh sách khách hàng (Có phân trang và bộ lọc)
      */
-    public function index(ControllersFilterRequest $request)
+    public function index(FilterRequest $request)
     {
         $customers = $this->customerService->index($request->all(), (int) ($request->limit ?? 10));
 
@@ -39,7 +39,7 @@ class CustomersController extends Controller
     /**
      * Thống kê khách hàng
      */
-    public function stats(ControllersFilterRequest $request)
+    public function stats(FilterRequest $request)
     {
         return $this->success($this->customerService->stats($request->all()));
     }
@@ -116,7 +116,7 @@ class CustomersController extends Controller
     /**
      * Xuất danh sách khách hàng (Excel)
      */
-    public function export(ControllersFilterRequest $request)
+    public function export(FilterRequest $request)
     {
         // Trả thẳng file BinaryFileResponse từ Service về Client
         return $this->customerService->export($request->all());
