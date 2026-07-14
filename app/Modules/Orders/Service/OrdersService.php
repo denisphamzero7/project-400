@@ -2,46 +2,51 @@
 
 namespace App\Modules\Orders\Service;
 
-
 use App\Models\OrderModel;
-
-use App\Events\OrderPaid;
 use App\Enums\OrdersStatusEnum;
-use App\Events\BigOrderPlaced;
 use App\Models\OrderItemModel;
 use App\Models\ProductModel;
-use Exception;
 use App\Modules\Orders\Exports\OrdersExport;
 use App\Modules\Orders\Imports\OrdersImport;
-use Illuminate\Support\Facades\DB;
-use Maatwebsite\Excel\Facades\Excel;
-use Barryvdh\DomPDF\Facade\Pdf;
 use App\Modules\Orders\Events\OrderActionEvent;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use RuntimeException;
+use Exception;
 
 class OrdersService
 {
-    public function __construct()
-    {
-    }
-
     /**
      * Thống kê số lượng đơn hàng.
+     * SỰ THẬT: Gom 5 query thành 1 query duy nhất bằng Conditional Aggregation.
      */
     public function stats(array $filters): array
     {
-        $base = OrderModel::filter($filters);
+        $stats = OrderModel::filter($filters)
+            ->reorder() // Xóa bỏ ORDER BY (nếu có từ filter) để tránh lỗi SQLSTATE 1140
+            ->selectRaw('
+                COUNT(id) as total,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as cancelled,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as expired
+            ', [
+                OrdersStatusEnum::PENDING->value,
+                OrdersStatusEnum::COMPLETED->value,
+                OrdersStatusEnum::CANCELLED->value,
+                OrdersStatusEnum::EXPIRED->value
+            ])
+            ->first();
 
-        // Tùy chỉnh lại các status đếm theo OrdersStatusEnum của bạn
-        // Ví dụ: 'pending' => (clone $base)->where('status', OrderStatusEnum::PENDING)->count(),
-        // Đảm bảo OrderStatusEnum đã được định nghĩa với các giá trị tương ứng.
+        // Ép kiểu về int vì SUM() trong SQL thường trả về chuỗi (string)
         return [
-            'total'     => (clone $base)->count(),
-            'pending'   => (clone $base)->where('status', OrdersStatusEnum::PENDING)->count(),
-            'completed' => (clone $base)->where('status', OrdersStatusEnum::COMPLETED)->count(),
-            'cancelled' => (clone $base)->where('status', OrdersStatusEnum::CANCELLED)->count(),
-            'expired'   => (clone $base)->where('status', OrdersStatusEnum::EXPIRED)->count(),
+            'total'     => (int) ($stats->total ?? 0),
+            'pending'   => (int) ($stats->pending ?? 0),
+            'completed' => (int) ($stats->completed ?? 0),
+            'cancelled' => (int) ($stats->cancelled ?? 0),
+            'expired'   => (int) ($stats->expired ?? 0),
         ];
     }
 
@@ -49,123 +54,86 @@ class OrdersService
      * Lấy danh sách đơn hàng có phân trang.
      */
     public function index(array $filters, int $limit)
-{
-    try {
-        // Thực hiện query và gán vào biến
-        $orders = OrderModel::with(['customer', 'items.product'])->filter($filters)->paginate($limit);
-
-        // Log danh sách kết quả để xem có gì bên trong
-        // Sử dụng toArray() để dễ đọc dữ liệu phân trang trong file log
-        Log::info('Danh sách Orders [Index]:', [
-            'filters' => $filters,
-            'limit' => $limit,
-            'data' => $orders->toArray()
-        ]);
-
-        return $orders;
-
-    } catch (Exception $e) {
-        // Log lại chi tiết lỗi nếu query thất bại
-        Log::error('Lỗi khi lấy danh sách Orders: ' . $e->getMessage(), [
-            'filters' => $filters,
-            'limit' => $limit,
-            'file' => $e->getFile(),
-            'line' => $e->getLine()
-        ]);
-
-        // Bạn có thể return một response báo lỗi hoặc throw lỗi tuỳ thuộc vào logic ứng dụng
-        // Ví dụ: return response()->json(['message' => 'Có lỗi xảy ra!'], 500);
-        throw $e;
+    {
+        // Ghi log là thói quen tốt, tiếp tục duy trì để trace lỗi
+        try {
+            return OrderModel::with(['customer', 'items.product'])->filter($filters)->paginate($limit);
+        } catch (Exception $e) {
+            Log::error('Lỗi khi lấy danh sách Orders: ' . $e->getMessage(), [
+                'filters' => $filters,
+                'limit'   => $limit,
+            ]);
+            throw new RuntimeException('Lỗi hệ thống khi tải danh sách đơn hàng.');
+        }
     }
-}
 
-    /**
-     * Lấy chi tiết đơn hàng.
-     */
     public function show(OrderModel $order): OrderModel
     {
-        return $order->load(['customer', 'items.product']); // Tải mối quan hệ 'items' và 'customer'
+        return $order->load(['customer', 'items.product']);
     }
 
     /**
      * Thêm mới đơn hàng.
+     * SỰ THẬT: Ở đây BẮT BUỘC dùng DB::transaction vì có nhiều thao tác ghi liên tiếp.
      */
     public function store(array $data): OrderModel
     {
         $order = DB::transaction(function () use ($data) {
-            // Tách riêng data cho order và order items
-            $orderData = [
-                'customer_id' => $data['customer_id'],
-                'status' => $data['status'] ?? 'pending', // Mặc định khi mới tạo
-                'total_amount' => 0, // Sẽ được tính và cập nhật lại ngay trong transaction
-            ];
-            $order = OrderModel::create($orderData);
+            $order = OrderModel::create([
+                'customer_id'  => $data['customer_id'],
+                'status'       => $data['status'] ?? OrdersStatusEnum::PENDING->value,
+                'total_amount' => 0, 
+            ]);
 
             $items = $data['items'] ?? [];
 
             if (!empty($items)) {
                 $productIds = array_column($items, 'product_id');
-                $products = ProductModel::find($productIds)->keyBy('id');
+                $products = ProductModel::whereIn('id', $productIds)->get()->keyBy('id');
 
-                if (count($products) !== count($productIds)) {
-                    throw new Exception("Một hoặc nhiều sản phẩm không tồn tại.");
+                if ($products->count() !== count($productIds)) {
+                    throw new RuntimeException("Một hoặc nhiều sản phẩm không tồn tại trong hệ thống.");
                 }
 
                 $orderItemsData = [];
-                $stockUpdates = [];
-                $totalAmount = 0; // 1. Khởi tạo biến tính tổng tiền
+                $totalAmount = 0;
 
                 foreach ($items as $item) {
                     $product = $products->get($item['product_id']);
 
-                    if (!$product) {
-                        throw new Exception("Sản phẩm với ID {$item['product_id']} không tồn tại.");
-                    }
-
                     if ($product->stock_quantity < $item['quantity']) {
-                        throw new Exception("Sản phẩm '{$product->name}' không đủ số lượng tồn kho.");
+                        throw new RuntimeException("Sản phẩm '{$product->name}' không đủ số lượng tồn kho.");
                     }
 
+                    // 1. Tính toán
                     $itemPrice = $product->price;
-
-                    // 2. Cộng dồn vào tổng tiền
                     $totalAmount += $itemPrice * $item['quantity'];
 
+                    // 2. Chuẩn bị data cho Order Items
                     $orderItemsData[] = [
-                        'order_id' => $order->id,
+                        'order_id'   => $order->id,
                         'product_id' => $product->id,
-                        'quantity' => $item['quantity'],
-                        'price' => $itemPrice,
+                        'quantity'   => $item['quantity'],
+                        'price'      => $itemPrice,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
 
-                    // Chuẩn bị câu lệnh update stock
-                    $stockUpdates[] = "WHEN {$product->id} THEN stock_quantity - {$item['quantity']}";
+                    // 3. FIX BUG BẢO MẬT: Cập nhật tồn kho an toàn tuyệt đối qua ORM thay vì nối chuỗi SQL
+                    $product->stock_quantity -= $item['quantity'];
+                    $product->save(); 
                 }
 
-                // Bulk insert order items
+                // Chèn hàng loạt Order Items (vẫn rất nhanh)
                 OrderItemModel::insert($orderItemsData);
 
-                // Bulk update stock quantity
-                if (!empty($stockUpdates)) {
-                    $ids = implode(',', $productIds);
-                    $cases = implode(' ', $stockUpdates);
-                    DB::update("UPDATE products SET stock_quantity = CASE id {$cases} END WHERE id IN ({$ids})");
-
-                    // 3. Cập nhật tổng tiền cho đơn hàng
-                    $order->total_amount = $totalAmount;
-                    $order->save();
-                }
+                // Cập nhật tổng tiền đơn hàng
+                $order->update(['total_amount' => $totalAmount]);
             }
-
-            // 4. Làm mới model để lấy dữ liệu mới nhất từ DB (bao gồm total_amount)
-            $order->refresh();
 
             return $order;
         });
 
-        // Tùy chọn: Bắn realtime nếu cần
         broadcast(new OrderActionEvent('created', $order->toArray()));
 
         return $order;
@@ -173,95 +141,49 @@ class OrdersService
 
     /**
      * Cập nhật đơn hàng.
+     * SỰ THẬT: Khai tử logic trả về mảng. Chỉ ném Exception nếu lỗi.
      */
-    public function update(OrderModel $order, array $validated): array
+    public function update(OrderModel $order, array $validated): OrderModel
     {
-        try {
-            $updatedOrder = DB::transaction(function () use ($order, $validated) {
-                $order->update($validated);
-                return $order;
-            });
-
-
-            broadcast(new OrderActionEvent('updated', $updatedOrder->toArray())); // Kích hoạt sự kiện cập nhật
-
-            return [
-                'ok' => true,
-                'order' => $updatedOrder
-            ];
-        } catch (\Exception $e) {
-            return [
-                'ok' => false,
-                'message' => 'Lỗi cập nhật: ' . $e->getMessage(),
-                'code' => 500,
-                'error_code' => 'UPDATE_ERROR'
-            ];
+        if (!$order->update($validated)) {
+            throw new RuntimeException('Không thể cập nhật thông tin đơn hàng.');
         }
+
+        broadcast(new OrderActionEvent('updated', $order->toArray()));
+
+        return $order;
     }
 
-    /**
-     * Xóa đơn hàng.
-     */
     public function destroy(OrderModel $order): void
     {
         $id = $order->id;
-        $order->delete();
+        
+        if (!$order->delete()) {
+            throw new RuntimeException('Không thể xóa đơn hàng này.');
+        }
 
-        broadcast(new OrderActionEvent('deleted', ['id' => $id])); // Kích hoạt sự kiện xóa
+        broadcast(new OrderActionEvent('deleted', ['id' => $id]));
     }
 
-    /**
-     * Xóa hàng loạt đơn hàng.
-     */
     public function bulkDestroy(array $ids): void
     {
-        DB::transaction(function () use ($ids) {
-            OrderModel::whereIn('id', $ids)->delete();
-        });
+        OrderModel::whereIn('id', $ids)->delete();
         broadcast(new OrderActionEvent('bulk-deleted', ['ids' => $ids]));
     }
 
-    /**
-     * Cập nhật trạng thái hàng loạt.
-     */
     public function bulkUpdateStatus(array $ids, string $status): void
     {
-        OrderModel::whereIn('id', $ids)->update(['status' => $status]); // Cập nhật trạng thái
-
+        OrderModel::whereIn('id', $ids)->update(['status' => $status]);
         broadcast(new OrderActionEvent('bulk-status-updated', ['ids' => $ids, 'status' => $status]));
     }
 
-    /**
-     * Xuất danh sách đơn hàng (Excel).
-     */
     public function export(array $filters): BinaryFileResponse
     {
-        return Excel::download(
-            new OrdersExport($filters), // Truyền file Export đã sửa
-            'orders.xlsx'
-        );
+        return Excel::download(new OrdersExport($filters), 'orders.xlsx');
     }
 
-    /**
-     * Nhập danh sách đơn hàng từ file.
-     */
     public function import($file): void
     {
-        Excel::import(new OrdersImport(), $file); // Truyền file Import đã sửa
+        Excel::import(new OrdersImport(), $file);
     }
-
-    /**
-     * Tạo và trả về file PDF cho một đơn hàng.
-     */
-    // public function downloadPdf(OrderModel $order)
-    // {
-    //     // Eager load các mối quan hệ cần thiết để tránh query N+1
-    //     $order->load('customer', 'items.product');
-
-    //     // Tạo PDF từ Blade view
-    //     $pdf = Pdf::loadView('pdfs.order_pdf', ['order' => $order]);
-
-    //     // Trả về file PDF để trình duyệt tải xuống
-    //     return $pdf->download('hoa-don-'.$order->id.'.pdf');
-    // }
 }

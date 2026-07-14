@@ -6,95 +6,79 @@ use App\Enums\OrdersStatusEnum;
 use App\Models\CustomersModel;
 use App\Models\OrderModel;
 use App\Models\ProductModel;
-use Illuminate\Support\Facades\DB;
 
 class ReportsService
 {
     public function generateRevenueReport(): array
     {
-        $revenueByProduct = $this->getRevenueByProduct();
-        $topCustomers = $this->getTopSpendingCustomers();
-        $cancellationRate = $this->getMonthlyCancellationRate();
-
         return [
-            'revenue_by_product' => $revenueByProduct,
-            'top_5_customers' => $topCustomers,
-            'cancellation_rate_this_month' => $cancellationRate,
+            'revenue_by_product'           => $this->getRevenueByProduct(),
+            'top_5_customers'              => $this->getTopSpendingCustomers(),
+            'cancellation_rate_this_month' => $this->getMonthlyCancellationRate(),
+            'sales_volume_by_product'      => $this->getSalesVolumeByProduct(), // Đổi tên từ text() cho rõ nghĩa
         ];
     }
 
     private function getRevenueByProduct()
     {
+        // GIẢI PHÁP: Chuyển Subquery thành JOIN đơn giản để Database tối ưu hóa index chéo.
         return ProductModel::query()
-            ->select('products.id', 'products.name', 'products.stock_quantity')
-            // Cột Tổng doanh thu
-            ->selectRaw('COALESCE((
-                SELECT SUM(oi.quantity * oi.price)
-                FROM order_items oi
-                JOIN orders o ON o.id = oi.order_id
-                WHERE oi.product_id = products.id
-                  AND o.status = ?
-            ), 0) AS total_revenue', [OrdersStatusEnum::COMPLETED->value])
-            // Cột Tổng số lượng đã bán
-            ->selectRaw('COALESCE((
-                SELECT SUM(oi.quantity)
-                FROM order_items oi
-                JOIN orders o ON o.id = oi.order_id
-                WHERE oi.product_id = products.id
-                  AND o.status = ?
-            ), 0) AS total_sold', [OrdersStatusEnum::COMPLETED->value])
+            ->join('order_items', 'products.id', '=', 'order_items.product_id')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.status', OrdersStatusEnum::COMPLETED->value)
+            ->select(
+                'products.id', 
+                'products.name', 
+                'products.stock_quantity'
+            )
+            ->selectRaw('SUM(order_items.quantity * order_items.price) as total_revenue')
+            ->selectRaw('SUM(order_items.quantity) as total_sold')
+            ->groupBy('products.id', 'products.name', 'products.stock_quantity')
             ->orderByDesc('total_revenue')
             ->get();
-
     }
 
     private function getTopSpendingCustomers()
     {
-     // Bước 1: Quét bảng orders để tìm 5 ID xuất sắc nhất
-    $topCustomersIds = DB::table('orders')
-        ->selectRaw('customer_id, SUM(total_amount) as total_spent')
-        ->where('status', OrdersStatusEnum::COMPLETED->value)
-        ->groupBy('customer_id')
-        ->orderByDesc('total_spent')
-        ->limit(5)
-        ->get();
-
-    if ($topCustomersIds->isEmpty()) {
-        return collect();
-    }
-
-    // Bước 2: Chỉ query đúng 5 user đó từ bảng Customers
-    $customers = CustomersModel::whereIn('id', $topCustomersIds->pluck('customer_id'))
-        ->get(['id', 'name', 'email'])
-        ->keyBy('id');
-
-    // Bước 3: Ghép dữ liệu tiền vào object để trả về
-    return $topCustomersIds->map(function ($stat) use ($customers) {
-        $customer = $customers->get($stat->customer_id);
-        if ($customer) {
-            $customer->total_spent = $stat->total_spent;
-            return $customer;
-        }
-    })->filter();
+        // GIẢI PHÁP: Loại bỏ hoàn toàn việc truy vấn 2 bước và xử lý Map dữ liệu thủ công trên RAM (PHP).
+        // Database sẽ chịu trách nhiệm tính tổng tiền và trả về đúng thực thể Customer mong muốn.
+        return CustomersModel::query()
+            ->join('orders', 'customers.id', '=', 'orders.customer_id')
+            ->where('orders.status', OrdersStatusEnum::COMPLETED->value)
+            ->select('customers.id', 'customers.name', 'customers.email')
+            ->selectRaw('SUM(orders.total_amount) as total_spent')
+            ->groupBy('customers.id', 'customers.name', 'customers.email')
+            ->orderByDesc('total_spent')
+            ->limit(5)
+            ->get();
     }
 
     private function getMonthlyCancellationRate()
     {
-      $startOfMonth = now()->startOfMonth();
+        // Giữ nguyên logic quét 1 lần tối ưu từ trước, đồng bộ lại định dạng viết code.
+        $stats = OrderModel::query()
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->selectRaw('
+                COUNT(id) as total_orders,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as cancelled_orders
+            ', [OrdersStatusEnum::CANCELLED->value])
+            ->first();
 
-    // Lấy TỔNG ĐƠN và TỔNG ĐƠN HỦY trong CÙNG MỘT lần quét
-    $stats = OrderModel::query()
-        ->where('created_at', '>=', $startOfMonth)
-        ->selectRaw('
-            COUNT(id) as total_orders,
-            SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as cancelled_orders
-        ', [OrdersStatusEnum::CANCELLED->value])
-        ->first();
+        if (!$stats || $stats->total_orders == 0) {
+            return 0;
+        }
 
-    if (!$stats || $stats->total_orders == 0) {
-        return 0;
+        return round(($stats->cancelled_orders / $stats->total_orders) * 100, 2);
     }
 
-    return round(($stats->cancelled_orders / $stats->total_orders) * 100, 2);
+    private function getSalesVolumeByProduct()
+    {
+        // NỀN TẢNG: Loại bỏ hoàn toàn DB::table(), đồng bộ sang Eloquent thông qua mối quan hệ từ OrderModel
+        return OrderModel::query()
+            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+            ->select('order_items.product_id')
+            ->selectRaw('SUM(order_items.quantity) as total_sold')
+            ->groupBy('order_items.product_id')
+            ->get();
     }
 }
